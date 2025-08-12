@@ -7,4 +7,4 @@ class Cartas:
     def __str__(self):
         return f'{self.numero} de {self.figura}'
     
-#a
+#b
