@@ -42,6 +42,6 @@ class Mazo:
             indice_de_jugador = index % num_jugadores
             jugadores[indice_de_jugador].append(carta)
         self.cartas_finales = self.cartas[:] #Esta sintaxis permite guardar el valor de self.carta como una copia, sin esto dos puntos al modificar cartas_finales modificarian cartas
-        for indice in sorted(indice_de_cartas_eliminar,reverse=True):
+        for indice in sorted(indice_de_cartas_eliminar,reverse=True): # hay que explicar esto completamente
             self.cartas_finales.pop(indice)
         return jugadores
