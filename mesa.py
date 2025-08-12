@@ -63,7 +63,7 @@ class Mesa:
             # cart = Cartas('Joker', 'Especial') 
             # mazo.agregar_cartas(cart)  # no se sabe si sin 1 o 2 jokerr
             
-        mazo.revolver_mazo()
+        mazo.revolver_mazo() # mueve las cartas
 
         if mazo.cartas_finales: # hecho por yosger
             cls.descarte.append(mazo.cartas_finales.pop(0))
