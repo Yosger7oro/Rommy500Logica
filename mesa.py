@@ -29,9 +29,8 @@ class Mesa:
             print(f'\nCartas del jugador {jugador.nro_jugador} - {jugador.nombre_jugador}:')
             for carta in mano:
                 print(carta)
-                
     @classmethod
-    def jugador_mano_orden(cls):
+    def jugador_mano_orden(cls): #hecho por jeiker
         indice_del_jugador_mano, nom_jug_mano = choice(list(enumerate(cls.lista_jugadores)))
         print(f"El jugador mano es: {nom_jug_mano.nombre_jugador}")
         jugadores_reordenados = []
@@ -60,31 +59,37 @@ class Mesa:
                     mazo.agregar_cartas(cart)
             cart = Cartas('Joker', 'Especial')
             mazo.agregar_cartas(cart)
-            cart = Cartas('Joker', 'Especial') 
-            mazo.agregar_cartas(cart)
+            # cart = Cartas('Joker', 'Especial') 
+            # mazo.agregar_cartas(cart)  # no se sabe si sin 1 o 2 jokerr
             
-        mazo.revolver_mazo()
-
-        if mazo.cartas:
-            cls.descarte.append(mazo.cartas.pop(0))
-
+        mazo.revolver_mazo() # mueve las cartas
+        mazo.mostrar_cartas("Las cartas en el mazo son: ")
+        mazo.mostrar_numero_cartas("El numero de cartas en el mazo: ")
         jugadores_reordenados = cls.jugador_mano_orden()
         manos = mazo.repartir_cartas(jugadores_reordenados)
+        if mazo.cartas: # hecho por yosger -> Es necesario el if?
+            cls.descarte.append(mazo.cartas.pop(-1))
+        
         
         print("Inicia de Juego")
         print(f"Carta inicial en el descarte: {cls.descarte[-1]}")
         cls.mostrar_manos(jugadores_reordenados, manos)
-        mazo.mostrar_nuevas_cartas()
-
+        mazo.mostrar_cartas("Las cartas restantes en el mazo son: ")
+        mazo.mostrar_numero_cartas("El numero de cartas en el mazo: ")
         cls.jugar_partida(jugadores_reordenados, manos, mazo)
 
     @classmethod
-    def jugar_partida(cls, jugadores, manos, mazo):
+    def jugar_partida(cls, jugadores, manos, mazo): #Hecho por yosger
         while True:
             for i, jugador in enumerate(jugadores):
-                mano_actual = manos[i]
-                print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})")
+                mano_actual = manos[i] #->arreglo de cartas del jugador i
+                print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})") 
                 print(f"Tus cartas: {[str(c) for c in mano_actual]}")
+                # Esta sintaxis es igual a hacer:
+                #arreglo = []
+                #for c in mano_actual
+                #   arreglo.append(str(c))
+                #print(f"... {arreglo}")
                 print(f"Carta en el descarte: {cls.descarte[-1]}")
                 
                 while True:
@@ -94,16 +99,16 @@ class Mesa:
                     opcion_robar = input("Elige una opción (1 o 2): ")
                     
                     if opcion_robar == '1':
-                        if mazo.cartas_finales:
-                            carta_robada = mazo.cartas_finales.pop(0)
+                        if mazo.cartas:
+                            carta_robada = mazo.cartas.pop(-1) #->Debe ser la ultima posicion por eso "-1"
                             mano_actual.append(carta_robada)
                             print(f"Has robado: {carta_robada}")
                         else:
                             print("No hay cartas en el mazo cerrado. ¡El mazo necesita ser barajado de nuevo!")
-                            continue
+                            continue #-> Basicamente se vuele a repetir el ciclo
                         break
                     elif opcion_robar == '2':
-                        carta_descarte = cls.descarte.pop()
+                        carta_descarte = cls.descarte.pop(-1)
                         mano_actual.append(carta_descarte)
                         print(f"Has tomado del descarte: {carta_descarte}")
                         break
@@ -118,7 +123,7 @@ class Mesa:
                     
                     carta_a_descartar = None
                     for carta in mano_actual:
-                        if str(carta) == descarte_str:
+                        if str(carta).strip().lower() == descarte_str:
                             carta_a_descartar = carta
                             break
                     
@@ -131,6 +136,3 @@ class Mesa:
                         print("Carta no encontrada en tu mano. Inténtalo de nuevo.")
                 
                 manos[i] = mano_actual
-# if __name__ == '__main__':
-#     mesa1 = Mesa()
-#     mesa1.cuantos_jugadores() 
