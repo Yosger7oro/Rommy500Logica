@@ -61,7 +61,7 @@ class Mesa:
             cart = Cartas('Joker', 'Especial')
             mazo.agregar_cartas(cart)
             # cart = Cartas('Joker', 'Especial') 
-            # mazo.agregar_cartas(cart)
+            # mazo.agregar_cartas(cart)  # no se sabe si sin 1 o 2 joker
             
         mazo.revolver_mazo()
 
