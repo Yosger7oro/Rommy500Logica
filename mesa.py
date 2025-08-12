@@ -65,11 +65,10 @@ class Mesa:
             
         mazo.revolver_mazo() # mueve las cartas
 
-        if mazo.cartas_finales: # hecho por yosger
+        jugadores_reordenados = cls.jugador_mano_orden()
+        manos = mazo.repartir_cartas(jugadores_reordenados)
+        if mazo.cartas_finales: # hecho por yosger -> Es necesario el if?
             cls.descarte.append(mazo.cartas_finales.pop(0))
-
-        jugadores_reordenados = cls.jugador_mano_orden() #hecho por yosger(?)
-        manos = mazo.repartir_cartas(jugadores_reordenados) #hecho por yosger(?)
         
         print("Inicia de Juego")
         print(f"Carta inicial en el descarte: {cls.descarte[-1]}")
@@ -82,9 +81,14 @@ class Mesa:
     def jugar_partida(cls, jugadores, manos, mazo): #Hecho por yosger
         while True:
             for i, jugador in enumerate(jugadores):
-                mano_actual = manos[i]
-                print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})")
+                mano_actual = manos[i] #->arreglo de cartas del jugador i
+                print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})") 
                 print(f"Tus cartas: {[str(c) for c in mano_actual]}")
+                # Esta sintaxis es igual a hacer:
+                #arreglo = []
+                #for c in mano_actual
+                #   arreglo.append(str(c))
+                #print(f"... {arreglo}")
                 print(f"Carta en el descarte: {cls.descarte[-1]}")
                 
                 while True:
@@ -95,15 +99,15 @@ class Mesa:
                     
                     if opcion_robar == '1':
                         if mazo.cartas_finales:
-                            carta_robada = mazo.cartas_finales.pop(0)
+                            carta_robada = mazo.cartas_finales.pop(-1) #->Deberia ser la ultima posicion
                             mano_actual.append(carta_robada)
                             print(f"Has robado: {carta_robada}")
                         else:
                             print("No hay cartas en el mazo cerrado. ¡El mazo necesita ser barajado de nuevo!")
-                            continue
+                            continue #-> Basicamente se vuele a repetir el ciclo
                         break
                     elif opcion_robar == '2':
-                        carta_descarte = cls.descarte.pop()
+                        carta_descarte = cls.descarte.pop(-1)
                         mano_actual.append(carta_descarte)
                         print(f"Has tomado del descarte: {carta_descarte}")
                         break

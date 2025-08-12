@@ -1,5 +1,5 @@
 class Cartas:
-    mazo = 54 # esto es necesario?
+    mazo = 54 # esto es necesario? -> no realmente
     def __init__(self, numero, figura):
         self.numero = numero
         self.figura = figura

@@ -44,4 +44,7 @@ class Mazo:
         self.cartas_finales = self.cartas[:] #Esta sintaxis permite guardar el valor de self.carta como una copia, sin esto dos puntos al modificar cartas_finales modificarian cartas
         for indice in sorted(indice_de_cartas_eliminar,reverse=True): # hay que explicar esto completamente
             self.cartas_finales.pop(indice)
+        
+        #El sorted(lista) -> Se encarga de ordenar en forma ascendente por defecto, sin embargo el reverse="True" hace que se ordene en forma descendente, ademas el sorted(lista) no modifica la lista, el literalmente crea otra lista. El ciclo de antes funciona asi: al aplicar el sorted al indice_de_cartas_eliminar, por ejemplo. indice_de_cartas_eliminar = [1,2,5,9,3] el sorted lo deja, [9,5,3,2,1] entonces el ciclo en su primer valor tomara 9, se borra de las cartas, la carta que estaba en la posicion 9. 
+        
         return jugadores
