@@ -15,13 +15,16 @@ class Mesa:
         num_jugadores = int(input('Cuantos jugadores van a jugar?: '))
         if num_jugadores == 1:
             print('Para jugar necesitas mas de un jugador')
+            return False
+        elif num_jugadores > 7:
+            print("Solo se puede jugar de maximo 7 jugadores")
+            return False
         else:
             for x in range(num_jugadores):
                 nombre = input('Ingrese el nombre del jugador: ')
                 jugador = Jugador(x+1, nombre)
                 cls.lista_jugadores.append(jugador)
                 print('jugador añadido')
-                
     @classmethod
     def mostrar_manos(cls, jugadores_reordenados, manos):
         for i, mano in enumerate(manos):
@@ -45,7 +48,8 @@ class Mesa:
     
     @classmethod
     def iniciar_partida(cls):
-        cls.cuantos_jugadores()
+        while cls.cuantos_jugadores() == False:
+            cls.cuantos_jugadores()
         cantidad_de_jugadores = len(cls.lista_jugadores)
         palos = ('Pica', 'Corazon', 'Diamante', 'Trebol')
         nro_carta = ('A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K')

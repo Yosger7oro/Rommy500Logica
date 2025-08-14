@@ -2,7 +2,6 @@ from random import sample, shuffle
 class Mazo:
     def __init__(self):
         self.cartas = []
-    
     def agregar_cartas(self,carta):
         self.cartas.append(carta)
     def Calcular_nro_mazos(self,numero_de_jugadores):
@@ -23,12 +22,12 @@ class Mazo:
     def repartir_cartas(self,lista_de_jugadores):
         num_jugadores = len(lista_de_jugadores)
         cartas_indice_repartidas = sample(list(enumerate(self.cartas)), 10*num_jugadores)
-        cartas_repartidas = []
-        indice_de_cartas_eliminar = []
+        cartas_repartidas = [] #Cartas a repartir
+        indice_de_cartas_eliminar = [] #Indice de cartas a eliminar
         for x in cartas_indice_repartidas:
             cartas_repartidas.append(x[1])
             indice_de_cartas_eliminar.append(x[0])
-        jugadores = []
+        jugadores = [] #lista que guardara una lista con cartas para cada jugadores [[],[],..]
         for _ in range(num_jugadores):
             jugadores.append([])
         for index, carta in enumerate(cartas_repartidas):
