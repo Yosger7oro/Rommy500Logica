@@ -2,6 +2,7 @@ from random import choice
 from jugador import Jugador
 from cartas import Cartas
 from mazo import Mazo
+from jugadas import Jugada
 
 class Mesa:
     lista_jugadores = []
@@ -118,6 +119,31 @@ class Mesa:
                         break
                     else:
                         print("Opción no válida. Por favor, elige 1 o 2.")
+                        
+                # Verificar si el jugador ya hizo su primera jugada
+                if not jugador.primera_jugada_hecha:
+                    print("\nBuscando si tienes la primera jugada (1 trío y 1 seguidilla)...")
+                    # Llamamos a la función de jugadas
+                    jugada_bajada = Jugada.primera_jugada(mano_actual)
+
+                    if jugada_bajada:
+                        # La función devolvió una jugada, no False
+                        print("Has bajado tu primera jugada a la mesa.")
+                        jugador.primera_jugada_hecha = True # Marcamos que ya la hizo
+
+                        # MUY IMPORTANTE: Quitar las cartas jugadas de la mano del jugador
+                        cartas_a_quitar = []
+                        for grupo in jugada_bajada: # jugada_bajada es una lista de listas, ej: [[trio], [seguidilla]]
+                            for carta in grupo:
+                                cartas_a_quitar.append(carta)
+                        
+                        # Creamos una nueva lista para la mano sin las cartas jugadas
+                        mano_actual_temp = [c for c in mano_actual if c not in cartas_a_quitar]
+                        mano_actual = mano_actual_temp
+
+                else:
+                    # Si ya hizo la primera jugada, aquí iría la lógica para bajar más cartas (futuro)
+                    print("\nYa hiciste tu primera jugada. Ahora puedes bajar otras combinaciones.")
 
                 print("\nAhora debes descartar una carta.")
                 print(f"Tus cartas actuales: {[str(c) for c in mano_actual]}")
