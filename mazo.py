@@ -4,7 +4,7 @@ class Mazo:
         self.cartas = []
     def agregar_cartas(self,carta):
         self.cartas.append(carta)
-    def Calcular_nro_mazos(self,numero_de_jugadores):
+    def calcular_nro_mazos(self,numero_de_jugadores):
         resultado = numero_de_jugadores // 3  
         if numero_de_jugadores % 3 != 0:
             resultado += 1

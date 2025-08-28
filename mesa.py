@@ -4,28 +4,34 @@ from cartas import Cartas
 from mazo import Mazo
 from jugadas import Jugada
 
+
 class Mesa:
     lista_jugadores = []
     descarte = []
-    
+    quema = []
     def __init__(self):
         pass
-        
+
+    @classmethod
+    def normalizar(cls, texto):
+        return texto.strip().lower().replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u')
+
     @classmethod
     def cuantos_jugadores(cls):
-        num_jugadores = int(input('Cuantos jugadores van a jugar?: '))
+        num_jugadores = int(input('¿Cuántos jugadores van a jugar?: '))
         if num_jugadores == 1:
-            print('Para jugar necesitas mas de un jugador')
+            print('Para jugar necesitas más de un jugador.')
             return False
         elif num_jugadores > 7:
-            print("Solo se puede jugar de maximo 7 jugadores")
+            print("Solo se puede jugar con un máximo de 7 jugadores.")
             return False
         else:
             for x in range(num_jugadores):
                 nombre = input('Ingrese el nombre del jugador: ')
                 jugador = Jugador(x+1, nombre)
                 cls.lista_jugadores.append(jugador)
-                print('jugador añadido')
+                print('Jugador añadido.')
+
     @classmethod
     def mostrar_manos(cls, jugadores_reordenados, manos):
         for i, mano in enumerate(manos):
@@ -33,8 +39,9 @@ class Mesa:
             print(f'\nCartas del jugador {jugador.nro_jugador} - {jugador.nombre_jugador}:')
             for carta in mano:
                 print(carta)
+
     @classmethod
-    def jugador_mano_orden(cls): #hecho por jeiker
+    def jugador_mano_orden(cls):
         indice_del_jugador_mano, nom_jug_mano = choice(list(enumerate(cls.lista_jugadores)))
         print(f"El jugador mano es: {nom_jug_mano.nombre_jugador}")
         jugadores_reordenados = []
@@ -46,7 +53,67 @@ class Mesa:
         for p in provisional:
             jugadores_reordenados.append(p)
         return jugadores_reordenados
-    
+
+    @classmethod
+    def compra(cls, jugador_actual, jugadores, manos, mazo):
+        if not cls.descarte:
+            print("No hay carta en el descarte para ofrecer.")
+            return
+
+        carta_descarte = cls.descarte[-1]
+        carta_comprada = False
+
+        print(f"\nSe ofrece la carta del descarte: {carta_descarte}")
+        for j in range(len(jugadores)):
+            if j == jugador_actual:
+                continue
+            jugador_siguiente = jugadores[j]
+            respuesta = input(f'{jugador_siguiente.nombre_jugador}, ¿quieres comprar la carta del descarte ({carta_descarte})? (si/no): ')
+            if cls.normalizar(respuesta) == 'si':
+                if mazo.cartas:
+                    carta_extra = mazo.cartas.pop(-1)
+                    manos[j].append(carta_descarte)
+                    manos[j].append(carta_extra)
+                    cls.descarte.pop(-1)
+                    print(f"{jugador_siguiente.nombre_jugador} ha comprado la carta del descarte y robado una carta extra.")
+                    carta_comprada = True
+                else:
+                    print("No hay cartas en el mazo para completar la compra.")
+                break
+
+        if not carta_comprada:
+            carta_quemada = cls.descarte.pop(-1)
+            cls.quema.append(carta_quemada)
+            print(f"Nadie compró la carta. Se ha quemado: {carta_quemada}")
+
+
+    @classmethod
+    def descartar_carta(cls, jugador_actual, jugadores, manos):
+        jugador = jugadores[jugador_actual]
+        mano_actual = manos[jugador_actual]
+        print(f"\n{jugador.nombre_jugador}, debes descartar una carta.")
+        print("Tus cartas actuales:")
+
+        # Mostrar la mano numerada
+        for idx, carta in enumerate(mano_actual, 1):
+            print(f"{idx}. {carta}")
+
+        while True:
+            try:
+                indice = int(input("Ingresa el número de la carta que quieres descartar: "))
+                if 1 <= indice <= len(mano_actual):
+                    carta_a_descartar = mano_actual.pop(indice - 1)
+                    cls.descarte.append(carta_a_descartar)
+                    print(f"Has descartado: {carta_a_descartar}")
+                    break
+                else:
+                    print("Número fuera de rango. Intenta de nuevo.")
+            except ValueError:
+                print("Entrada inválida. Ingresa un número.")
+        
+        manos[jugador_actual] = mano_actual
+
+
     @classmethod
     def iniciar_partida(cls):
         while cls.cuantos_jugadores() == False:
@@ -54,9 +121,8 @@ class Mesa:
         cantidad_de_jugadores = len(cls.lista_jugadores)
         palos = ('Pica', 'Corazon', 'Diamante', 'Trebol')
         nro_carta = ('A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K')
-        
         mazo = Mazo()
-        nro_mazos = mazo.Calcular_nro_mazos(cantidad_de_jugadores)
+        nro_mazos = mazo.calcular_nro_mazos(cantidad_de_jugadores)
         for _ in range(nro_mazos):
             for palo in palos:
                 for carta in nro_carta:
@@ -64,66 +130,64 @@ class Mesa:
                     mazo.agregar_cartas(cart)
             cart = Cartas('Joker', 'Especial')
             mazo.agregar_cartas(cart)
-            # cart = Cartas('Joker', 'Especial') 
-            # mazo.agregar_cartas(cart)  # no se sabe si sin 1 o 2 jokerr
-            
-        mazo.revolver_mazo() # mueve las cartas
+        mazo.revolver_mazo()
         mazo.mostrar_cartas("Las cartas en el mazo son: ")
-        mazo.mostrar_numero_cartas("El numero de cartas en el mazo: ")
+        mazo.mostrar_numero_cartas("El número de cartas en el mazo: ")
         jugadores_reordenados = cls.jugador_mano_orden()
         manos = mazo.repartir_cartas(jugadores_reordenados)
-        if mazo.cartas: # hecho por yosger -> Es necesario el if?
+        if mazo.cartas:
             cls.descarte.append(mazo.cartas.pop(-1))
-        
-        
-        print("Inicia de Juego")
+        print("Inicia el juego")
         print(f"Carta inicial en el descarte: {cls.descarte[-1]}")
         cls.mostrar_manos(jugadores_reordenados, manos)
         mazo.mostrar_cartas("Las cartas restantes en el mazo son: ")
-        mazo.mostrar_numero_cartas("El numero de cartas en el mazo: ")
+        mazo.mostrar_numero_cartas("El número de cartas en el mazo: ")
         cls.jugar_partida(jugadores_reordenados, manos, mazo)
 
     @classmethod
-    def jugar_partida(cls, jugadores, manos, mazo): #Hecho por yosger
-        while True:
+    def jugar_partida(cls, jugadores, manos, mazo):
+        ronda_terminada = False
+        while not ronda_terminada:
             for i, jugador in enumerate(jugadores):
-                mano_actual = manos[i] #->arreglo de cartas del jugador i
-                print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})") 
+                mano_actual = manos[i]
+                print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})")
+                print("\nEs la primera ronda. Solo puedes intentar la primera jugada.")
                 print(f"Tus cartas: {[str(c) for c in mano_actual]}")
-                # Esta sintaxis es igual a hacer:
-                #arreglo = []
-                #for c in mano_actual
-                #   arreglo.append(str(c))
-                #print(f"... {arreglo}")
-                print(f"Carta en el descarte: {cls.descarte[-1]}")
-                
+                if cls.descarte:
+                    print(f"Carta en el descarte: {cls.descarte[-1]}")
+                else:
+                    print("No hay carta en el descarte.")
                 while True:
                     print("\nOpciones:")
                     print("1. Robar carta del mazo cerrado")
                     print("2. Tomar carta del descarte")
-                    opcion_robar = input("Elige una opción (1 o 2): ")
-                    
-                    if opcion_robar == '1':
+                    opcion_robar = int(input("Elige una opción: "))
+                    if opcion_robar == 1:
                         if mazo.cartas:
-                            carta_robada = mazo.cartas.pop(-1) #->Debe ser la ultima posicion por eso "-1"
+                            carta_robada = mazo.cartas.pop(-1)
                             mano_actual.append(carta_robada)
                             print(f"Has robado: {carta_robada}")
+                            cls.compra(i, jugadores, manos, mazo)
+                            cls.descartar_carta(i, jugadores, manos)
+                            break
                         else:
-                            print("No hay cartas en el mazo cerrado. ¡El mazo necesita ser barajado de nuevo!")
-                            continue #-> Basicamente se vuele a repetir el ciclo
-                        break
-                    elif opcion_robar == '2':
-                        carta_descarte = cls.descarte.pop(-1)
-                        mano_actual.append(carta_descarte)
-                        print(f"Has tomado del descarte: {carta_descarte}")
-                        break
-                    else:
-                        print("Opción no válida. Por favor, elige 1 o 2.")
+                            print("No hay cartas en el mazo cerrado.")
+                            continue
+                    elif opcion_robar == 2:
+                        if cls.descarte:
+                            carta_descarte = cls.descarte.pop(-1)
+                            mano_actual.append(carta_descarte)
+                            print(f"Has tomado del descarte: {carta_descarte}")
+                            cls.descartar_carta(i, jugadores, manos)
+                            break
+                        else:
+                            print("No hay carta en el descarte. Debes robar del mazo.")
+                            continue
                         
                 # Verificar si el jugador ya hizo su primera jugada
                 if not jugador.primera_jugada_hecha:
                     print("\nBuscando si tienes la primera jugada (1 trío y 1 seguidilla)...")
-                    # Llamamos a la función de jugadas
+                    # Llamamos a la función de jugadas.py
                     jugada_bajada = Jugada.primera_jugada(mano_actual)
 
                     if jugada_bajada:
@@ -140,29 +204,15 @@ class Mesa:
                         # Creamos una nueva lista para la mano sin las cartas jugadas
                         mano_actual_temp = [c for c in mano_actual if c not in cartas_a_quitar]
                         mano_actual = mano_actual_temp
-
                 else:
                     # Si ya hizo la primera jugada, aquí iría la lógica para bajar más cartas (futuro)
                     print("\nYa hiciste tu primera jugada. Ahora puedes bajar otras combinaciones.")
-
-                print("\nAhora debes descartar una carta.")
-                print(f"Tus cartas actuales: {[str(c) for c in mano_actual]}")
                 
-                while True:
-                    descarte_str = input("Ingresa la carta que quieres descartar (ej: 5 de Trebol): ")
-                    
-                    carta_a_descartar = None
-                    for carta in mano_actual:
-                        if str(carta).strip().lower() == descarte_str:
-                            carta_a_descartar = carta
-                            break
-                    
-                    if carta_a_descartar:
-                        mano_actual.remove(carta_a_descartar)
-                        cls.descarte.append(carta_a_descartar)
-                        print(f"Has descartado: {carta_a_descartar}")
-                        break
-                    else:
-                        print("Carta no encontrada en tu mano. Inténtalo de nuevo.")
-                
-                manos[i] = mano_actual
+                # --- Lógica para terminar la ronda ---
+                if not mano_actual:
+                    print(f"\n¡{jugador.nombre_jugador} se ha quedado sin cartas y ha ganado la ronda!")
+                    ronda_terminada = True
+                    break  # Sale del bucle 'for'
+            
+            if ronda_terminada:
+                break # Sale del bucle 'while'

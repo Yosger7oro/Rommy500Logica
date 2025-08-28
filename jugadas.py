@@ -2,17 +2,10 @@ class Jugada:
     def __init__(self):
         pass
 
-    @staticmethod
-    def _format_card_list(cards):
-        """Método estático de ayuda para formatear una lista de cartas en un texto legible."""
-        return ", ".join([str(c) for c in cards])
-
     @classmethod
     def Trio(cls, mano):
-        # Identifica todos los tríos en una mano, usando un Joker como comodín si es necesario.
-        #- Un trío natural son 3 o más cartas del mismo número.
-        #- Un trío con comodín son 2 cartas del mismo número más 1 Joker.
         
+        # Identifica todos los tríos en una mano, usando un Joker como comodín si es necesario.
         jokers = [carta for carta in mano if carta.numero == 'Joker']
         cartas_normales = [carta for carta in mano if carta.numero != 'Joker']
         
@@ -48,9 +41,6 @@ class Jugada:
     def Seguidilla(cls, mano):
         
         # Identifica todas las seguidillas en una mano, usando hasta dos Jokers como comodines.
-        #- Una seguidilla son 4 o más cartas consecutivas del mismo palo.
-        #- Se pueden usar hasta 2 Jokers, pero no de forma consecutiva (ej: 5, Joker, 7, Joker, 9 es válido; 5, Joker, Joker, 8 no lo es).
-        
         rank_map = {'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13}
         jokers = [carta for carta in mano if carta.numero == 'Joker']
         cartas_normales = [carta for carta in mano if carta.numero != 'Joker']
@@ -137,7 +127,6 @@ class Jugada:
                 jugadas_finales.append(jugada)
 
         return jugadas_finales
-
 
     @classmethod
     def primera_jugada(cls, mano):
