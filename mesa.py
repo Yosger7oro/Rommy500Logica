@@ -9,6 +9,8 @@ class Mesa:
     lista_jugadores = []
     descarte = []
     quema = []
+    cartas_mesa = []
+    jugadores_primera_jugada = []
     def __init__(self):
         pass
 
@@ -52,6 +54,8 @@ class Mesa:
             provisional.insert(0, cls.lista_jugadores[x])
         for p in provisional:
             jugadores_reordenados.append(p)
+        for x in range(len(jugadores_reordenados)):
+            cls.cartas_mesa.append([])
         return jugadores_reordenados
 
     @classmethod
@@ -153,6 +157,7 @@ class Mesa:
                 print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})")
                 print("\nEs la primera ronda. Solo puedes intentar la primera jugada.")
                 print(f"Tus cartas: {[str(c) for c in mano_actual]}")
+                print(f"Las cartas en la mesa: {[str(c) for c in cls.cartas_mesa]}")
                 if cls.descarte:
                     print(f"Carta en el descarte: {cls.descarte[-1]}")
                 else:
@@ -161,6 +166,7 @@ class Mesa:
                     print("\nOpciones:")
                     print("1. Robar carta del mazo cerrado")
                     print("2. Tomar carta del descarte")
+                    print("3. selcciona tus cartas para bajarte")
                     opcion_robar = int(input("Elige una opción: "))
                     if opcion_robar == 1:
                         if mazo.cartas:
@@ -183,31 +189,12 @@ class Mesa:
                         else:
                             print("No hay carta en el descarte. Debes robar del mazo.")
                             continue
-                        
-                # Verificar si el jugador ya hizo su primera jugada
-                if not jugador.primera_jugada_hecha:
-                    print("\nBuscando si tienes la primera jugada (1 trío y 1 seguidilla)...")
-                    # Llamamos a la función de jugadas.py
-                    jugada_bajada = Jugada.primera_jugada(mano_actual)
-
-                    if jugada_bajada:
-                        # La función devolvió una jugada, no False
-                        print("Has bajado tu primera jugada a la mesa.")
-                        jugador.primera_jugada_hecha = True # Marcamos que ya la hizo
-
-                        # MUY IMPORTANTE: Quitar las cartas jugadas de la mano del jugador
-                        cartas_a_quitar = []
-                        for grupo in jugada_bajada: # jugada_bajada es una lista de listas, ej: [[trio], [seguidilla]]
-                            for carta in grupo:
-                                cartas_a_quitar.append(carta)
-                        
-                        # Creamos una nueva lista para la mano sin las cartas jugadas
-                        mano_actual_temp = [c for c in mano_actual if c not in cartas_a_quitar]
-                        mano_actual = mano_actual_temp
-                else:
-                    # Si ya hizo la primera jugada, aquí iría la lógica para bajar más cartas (futuro)
-                    print("\nYa hiciste tu primera jugada. Ahora puedes bajar otras combinaciones.")
-                
+                    elif opcion_robar == 3:
+                        Jugada.validar_jugada(mano_actual,jugador,cls.cartas_mesa,cls.jugadores_primera_jugada,i)
+                        if jugador not in cls.jugadores_primera_jugada:
+                            continue                
+                        else:
+                            break
                 # --- Lógica para terminar la ronda ---
                 if not mano_actual:
                     print(f"\n¡{jugador.nombre_jugador} se ha quedado sin cartas y ha ganado la ronda!")
@@ -216,3 +203,30 @@ class Mesa:
             
             if ronda_terminada:
                 break # Sale del bucle 'while'
+
+
+
+            #  hola
+            #  # Verificar si el jugador ya hizo su primera jugada
+            #     if not jugador.primera_jugada_hecha:
+            #         print("\nBuscando si tienes la primera jugada (1 trío y 1 seguidilla)...")
+            #         # Llamamos a la función de jugadas.py
+            #         jugada_bajada = Jugada.primera_jugada(mano_actual)
+
+            #         if jugada_bajada:
+            #             # La función devolvió una jugada, no False
+            #             print("Has bajado tu primera jugada a la mesa.")
+            #             jugador.primera_jugada_hecha = True # Marcamos que ya la hizo
+
+            #             # MUY IMPORTANTE: Quitar las cartas jugadas de la mano del jugador
+            #             cartas_a_quitar = []
+            #             for grupo in jugada_bajada: # jugada_bajada es una lista de listas, ej: [[trio], [seguidilla]]
+            #                 for carta in grupo:
+            #                     cartas_a_quitar.append(carta)
+                        
+            #             # Creamos una nueva lista para la mano sin las cartas jugadas
+            #             mano_actual_temp = [c for c in mano_actual if c not in cartas_a_quitar]
+            #             mano_actual = mano_actual_temp
+            #     else:
+            #         # Si ya hizo la primera jugada, aquí iría la lógica para bajar más cartas (futuro)
+            #         print("\nYa hiciste tu primera jugada. Ahora puedes bajar otras combinaciones.")                          
