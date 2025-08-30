@@ -3,7 +3,7 @@ class Jugada:
     trio = []
     seguidilla = []
     def __init__(self):
-        pass
+        pass    
     @classmethod
     def agregar_cartas_primera_jugada(cls,i,lista,cartas_mesa):
         for x in lista:
@@ -74,7 +74,8 @@ class Jugada:
     @classmethod
     def validar_jugada(cls,mano_actual,jugador,cartas_mesa,jugadores_primera_jugada,i):
       if jugador not in jugadores_primera_jugada:
-        print("agregue la carta que desea, presione 1 para confirmar su trio, 2 para limpiar y 3 para salir")
+        print("prirmero seleccione las cartas para su trio")
+        print("agregue las cartas que quiera, presione 1 para confirmar su trio, 2 para limpiar y 3 para salir")
         num_saltos=0
         carta = None
         trio_valido= False
@@ -82,7 +83,7 @@ class Jugada:
         while carta != 1:
             mano_actual_a = [str(c) for c in mano_actual]                       
             mano_actual_a = [m.lower() for m in mano_actual_a]
-            carta = input("seleccione carta: ").lower()
+            carta = input("seleccione su carta: ").lower()
             if carta in [x.lower() for x in mano_actual_a]:
                 cls.trio.append(carta)
                 mano_actual_a.remove(carta)
@@ -122,11 +123,12 @@ class Jugada:
             else:
                 print("la carta no esta :v")
         if carta != 1:
-            print("agregue la carta que desea, presione 1 para confirmar su seguidilla, 2 para limpiar y 3 para salir")
+            print("ahora seleccione las cartas para su seguidilla")
+            print("agregue las cartas que quiera, presione 1 para confirmar su seguidilla, 2 para limpiar y 3 para salir")
         while carta != 1:
             mano_actual_a = [str(c) for c in mano_actual]                       
             mano_actual_a = [m.lower() for m in mano_actual_a]
-            carta= input("seleccione carta: ").lower()
+            carta= input("seleccione su carta: ").lower()
             if carta in [x.lower() for x in mano_actual_a]:
                 cls.seguidilla.append(carta)
                 mano_actual_a.remove(carta)
