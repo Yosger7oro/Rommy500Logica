@@ -1,75 +1,285 @@
 from cartas import Cartas
+
 class Jugada:
     trio = []
     seguidilla = []
+    cartas_usadas_extension = []
+
     def __init__(self):
-        pass    
+        pass
+
     @classmethod
-    def agregar_cartas_primera_jugada(cls,i,lista,cartas_mesa):
+    def agregar_cartas_primera_jugada(cls, i, lista, cartas_mesa):
         for x in lista:
             cartas_mesa[i].append(x)
         lista.clear()
+
     @classmethod
-    def regresar_cartas(cls,lista,mano_actual):     
+    def regresar_cartas(cls, lista, mano_actual):
         for x in lista:
-            valor, _, palo=x.partition(" de ")
-            c = Cartas(valor, palo)
+            valor, _, palo = x.partition(" de ")
+            c = Cartas(valor.strip(), palo.strip())
             mano_actual.append(c)
+
     @classmethod
-    def eliminar_carta(cls,carta,mano_actual):
-        carta_eliminada=None
+    def eliminar_carta(cls, carta, mano_actual):
+        carta_eliminada = None
         for x in mano_actual:
             if str(x).strip().lower() == carta:
                 carta_eliminada = x
         if carta_eliminada:
-                mano_actual.remove(carta_eliminada)
-    @classmethod            
-    def salto_joker(cls,rango,valores):
-        saltos=0
-        for i in range(rango,len(valores)-1):
-            if valores[i+1]-valores[i] == 2:
-                saltos+=1
-        return saltos
+            mano_actual.remove(carta_eliminada)
+
     @classmethod
-    def salto(cls,rango,valores):
-        saltos=0
-        for i in range(rango,len(valores)-1):
-            if valores[i+1]-valores[i] != 1:
-                saltos+=1
+    def salto_joker(cls, rango, valores):
+        saltos = 0
+        for i in range(rango, len(valores) - 1):
+            if valores[i + 1] - valores[i] == 2:
+                saltos += 1
         return saltos
+
     @classmethod
-    def mover_joker(cls,seguidilla_ordenada):
-        elemento=seguidilla_ordenada.pop(0)
+    def salto(cls, rango, valores):
+        saltos = 0
+        for i in range(rango, len(valores) - 1):
+            if valores[i + 1] - valores[i] != 1:
+                saltos += 1
+        return saltos
+
+    @classmethod
+    def mover_joker(cls, seguidilla_ordenada):
+        elemento = seguidilla_ordenada.pop(0)
         seguidilla_ordenada.append(elemento)
+
     @classmethod
-    def jokers(cls,seguidilla_ordenada,valores,rango):
+    def jokers(cls, seguidilla_ordenada, valores, rango):
         c = 0
         for x in range(rango):
             elemento = seguidilla_ordenada.pop(0)
-            insertado=0
-            for i in range(len(valores)-1):
-                actual= valores[i]
-                siguiente =valores[i+1]
-                if siguiente-actual == 2 and actual != 0 and siguiente != 0 and c == 0:
-                    seguidilla_ordenada.insert(i,elemento)
+            insertado = 0
+            for i in range(len(valores) - 1):
+                actual = valores[i]
+                siguiente = valores[i + 1]
+                if siguiente - actual == 2 and actual != 0 and siguiente != 0 and c == 0:
+                    seguidilla_ordenada.insert(i, elemento)
                     insertado = 1
                     c = 1
                     break
-                elif siguiente-actual == 2 and actual != 0 and siguiente != 0 and c == 1:
-                    seguidilla_ordenada.insert(i+1,elemento)
+                elif siguiente - actual == 2 and actual != 0 and siguiente != 0 and c == 1:
+                    seguidilla_ordenada.insert(i + 1, elemento)
                     insertado = 1
-                    break          
-            if insertado==0:
-                seguidilla_ordenada.insert(0,elemento)
-    @classmethod                        
-    def opciones_joker(cls,seguidilla_ordenada,mensaje):
+                    break
+            if insertado == 0:
+                seguidilla_ordenada.insert(0, elemento)
+
+    @classmethod
+    def opciones_joker(cls, seguidilla_ordenada, mensaje):
         print(mensaje)
-        c= input("1 para colocarlo en el principio y 2 para colocarlo en el final: ")
-        if c == "1":                   
-            print("seguidilla valida")
+        c = input("1 para colocarlo en el principio y 2 para colocarlo en el final: ")
+        if c == "1":
+            print("seguidilla válida")
         elif c == "2":
             cls.mover_joker(seguidilla_ordenada)
-            print("segudilla valida")
+            print("seguidilla válida")
+
+    @classmethod
+    def dividir_en_grupos_validos(cls, jugada):
+        grupos = []
+        actual = []
+
+        for carta in jugada:
+            if isinstance(carta, str):
+                valor, _, palo = carta.partition(" de ")
+                carta = Cartas(valor.strip(), palo.strip())
+
+            if not actual:
+                actual.append(carta)
+                continue
+
+            primera = actual[0]
+
+            if carta.numero == primera.numero or carta.numero == 'Joker' or primera.numero == 'Joker':
+                actual.append(carta)
+            elif (
+                carta.figura == primera.figura and
+                (
+                    carta.numero == 'Joker' or
+                    primera.numero == 'Joker' or
+                    abs(carta.valor_numerico() - actual[-1].valor_numerico()) == 1
+                )
+            ):
+                actual.append(carta)
+            else:
+                grupos.append(actual)
+                actual = [carta]
+
+        if actual:
+            grupos.append(actual)
+
+        return grupos
+
+    @classmethod
+    def puede_extender_seguidilla(cls, carta, seguidilla):
+        if not all(c.figura == seguidilla[0].figura for c in seguidilla if c.numero != 'Joker'):
+            return False
+
+        valores = [c.valor_numerico() for c in seguidilla if c.numero != 'Joker']
+        valores.sort()
+
+        if carta.valor_numerico() == valores[0] - 1:
+            return "inicio"
+        if carta.valor_numerico() == valores[-1] + 1:
+            return "final"
+
+        return False
+
+    @classmethod
+    def puede_reemplazar_joker_trio(cls, carta, trio):
+        valores = [c.numero for c in trio]
+        if 'Joker' in valores:
+            joker_index = valores.index('Joker')
+            otros_valores = [val for i, val in enumerate(valores) if i != joker_index and val != 'Joker']
+            if len(set(otros_valores)) == 1 and carta.numero == otros_valores[0]:
+                return joker_index
+        return -1
+
+    @classmethod
+    def puede_reemplazar_joker_seguidilla(cls, carta, seguidilla):
+        joker_pos = -1
+        for i, c in enumerate(seguidilla):
+            if c.numero == 'Joker':
+                joker_pos = i
+                break
+
+        if joker_pos == -1:
+            return False
+
+        palos = [c.figura for c in seguidilla if c.numero != 'Joker']
+        if len(set(palos)) != 1 or carta.figura != palos[0]:
+            return False
+
+        seguidilla_reemplazada = seguidilla[:]
+        seguidilla_reemplazada[joker_pos] = carta
+
+        valores = [c.valor_numerico() for c in seguidilla_reemplazada]
+        valores.sort()
+
+        for i in range(len(valores) - 1):
+            if valores[i + 1] - valores[i] != 1:
+                return False
+
+        return joker_pos
+    @classmethod
+    def extender_jugadas(cls, mano_actual, jugador, cartas_mesa):
+        print("\n--- EXTENDER JUGADAS ---")
+        print("Cartas en la mesa:")
+        for i, jugada in enumerate(cartas_mesa):
+            if jugada:
+                print(f"Jugada {i+1}: {[str(c) for c in jugada]}")
+
+        print("\nTus cartas:")
+        for i, carta in enumerate(mano_actual, 1):
+            print(f"{i}. {carta}")
+
+        opciones = []
+
+        for carta_idx, carta in enumerate(mano_actual):
+            for mesa_idx, jugada in enumerate(cartas_mesa):
+                if not jugada:
+                    continue
+
+                subgrupos = cls.dividir_en_grupos_validos(jugada)
+
+                for subgrupo in subgrupos:
+                    jugada_objetos = []
+                    for c in subgrupo:
+                        if isinstance(c, str):
+                            valor, _, palo = c.partition(" de ")
+                            c = Cartas(valor.strip(), palo.strip())
+                        jugada_objetos.append(c)
+
+                    if len(jugada_objetos) >= 3 and all(c.numero == jugada_objetos[0].numero for c in jugada_objetos if c.numero != 'Joker'):
+                        if carta.numero == jugada_objetos[0].numero and carta not in cls.cartas_usadas_extension:
+                            opciones.append((carta_idx, mesa_idx, "trio", "extender", "final", jugada_objetos))
+
+                        joker_pos = cls.puede_reemplazar_joker_trio(carta, jugada_objetos)
+                        if joker_pos != -1 and carta not in cls.cartas_usadas_extension:
+                            opciones.append((carta_idx, mesa_idx, "trio", "reemplazar_joker", joker_pos, jugada_objetos))
+
+                    elif len(jugada_objetos) >= 4 and all(c.figura == jugada_objetos[0].figura for c in jugada_objetos if c.numero != 'Joker'):
+                        extension = cls.puede_extender_seguidilla(carta, jugada_objetos)
+                        if extension and carta not in cls.cartas_usadas_extension:
+                            opciones.append((carta_idx, mesa_idx, "seguidilla", "extender", extension, jugada_objetos))
+
+                        joker_pos = cls.puede_reemplazar_joker_seguidilla(carta, jugada_objetos)
+                        if joker_pos is not False and carta not in cls.cartas_usadas_extension:
+                            opciones.append((carta_idx, mesa_idx, "seguidilla", "reemplazar_joker", joker_pos, jugada_objetos))
+
+        if not opciones:
+            print("No tienes opciones para extender jugadas.")
+            return False
+
+        print("\nOpciones de extensión:")
+        for i, opcion in enumerate(opciones, 1):
+            carta_idx, mesa_idx, tipo, accion, *extra, subgrupo = opcion
+            carta = mano_actual[carta_idx]
+            if accion == "extender":
+                pos = extra[0]
+                print(f"{i}. Agregar {carta} al {pos} de la {tipo} {[str(c) for c in subgrupo]}")
+            else:
+                joker_pos = extra[0]
+                print(f"{i}. Reemplazar joker en posición {joker_pos+1} de {tipo} {[str(c) for c in subgrupo]} con {carta}")
+
+        seleccion = input("\nSelecciona una opción (0 para cancelar): ")
+        if not seleccion.isdigit() or int(seleccion) == 0:
+            return False
+
+        seleccion_idx = int(seleccion) - 1
+        if seleccion_idx < 0 or seleccion_idx >= len(opciones):
+            print("Opción inválida.")
+            return False
+
+        carta_idx, mesa_idx, tipo, accion, *extra, subgrupo = opciones[seleccion_idx]
+        carta = mano_actual[carta_idx]
+
+        subgrupo_objetos = []
+        for c in subgrupo:
+            if isinstance(c, str):
+                valor, _, palo = c.partition(" de ")
+                c = Cartas(valor.strip(), palo.strip())
+            subgrupo_objetos.append(c)
+
+        if accion == "extender":
+            pos = extra[0]
+            if pos == "inicio":
+                subgrupo_objetos.insert(0, carta)
+            else:
+                subgrupo_objetos.append(carta)
+            mano_actual.remove(carta)
+            cls.cartas_usadas_extension.append(carta)
+            print(f"Has agregado {carta} al {pos} de la {tipo}.")
+        else:
+            joker_pos = extra[0]
+            joker = subgrupo_objetos[joker_pos]
+            subgrupo_objetos[joker_pos] = carta
+            mano_actual.remove(carta)
+            mano_actual.append(joker)
+            cls.cartas_usadas_extension.append(carta)
+            print(f"Has reemplazado el joker con {carta}. El joker ha sido devuelto a tu mano.")
+
+        jugada_original = cartas_mesa[mesa_idx]
+        nueva_jugada = []
+
+        for grupo in cls.dividir_en_grupos_validos(jugada_original):
+            if [str(c) for c in grupo] == [str(c) for c in subgrupo]:
+                nueva_jugada.extend(subgrupo_objetos)
+            else:
+                nueva_jugada.extend(grupo)
+
+        cartas_mesa[mesa_idx] = nueva_jugada
+        return True
+
+
             
     @classmethod
     def validar_jugada(cls,mano_actual,jugador,cartas_mesa,jugadores_primera_jugada,i):
