@@ -122,6 +122,41 @@ class Mesa:
 
         manos[jugador_actual] = mano_actual
 
+    @classmethod
+    def obtener_todas_jugadas_numeradas(cls, cartas_mesa, jugadores):
+        """Devuelve un diccionario con todas las jugadas numeradas"""
+        jugadas_numeradas = {}
+        contador = 1
+        
+        for i, jugada in enumerate(cartas_mesa):
+            if jugada and i < len(jugadores):
+                jugador_obj = jugadores[i]
+                subgrupos = cls.dividir_en_grupos_validos(jugada)
+                
+                for subgrupo in subgrupos:
+                    if len(subgrupo) >= 3:
+                        # Determinar si es trío o seguidilla
+                        es_trio = all(c.numero == subgrupo[0].numero for c in subgrupo if c.numero != 'Joker')
+                        es_seguidilla = all(c.figura == subgrupo[0].figura for c in subgrupo if c.numero != 'Joker')
+                        
+                        if es_trio:
+                            tipo = 'trio'
+                        elif es_seguidilla:
+                            tipo = 'seguidilla'
+                        else:
+                            tipo = 'grupo'
+                        
+                        jugadas_numeradas[contador] = {
+                            'jugador_idx': i,
+                            'jugador_nombre': jugador_obj.nombre_jugador,
+                            'jugador_numero': jugador_obj.nro_jugador,
+                            'subgrupo': subgrupo,
+                            'tipo': tipo
+                        }
+                        contador += 1
+        
+        return jugadas_numeradas
+
     # NUEVO MÉTODO: Mostrar menú de extensión
     @classmethod
     def mostrar_menu_extension(cls, jugador_actual, jugadores, manos, mazo):
@@ -129,10 +164,16 @@ class Mesa:
         mano_actual = manos[jugador_actual]
         
         print(f"\n--- TURNO DE {jugador.nombre_jugador.upper()} ---")
-        print("Cartas en la mesa:")
-        for i, jugada in enumerate(cls.cartas_mesa):
-            if jugada:
-                print(f"Jugada {i+1}: {[str(c) for c in jugada]}")
+        
+        # Obtener jugadas numeradas
+        jugadas_numeradas = Jugada.obtener_todas_jugadas_numeradas(cls.cartas_mesa, jugadores)
+        
+        if not jugadas_numeradas:
+            print("No hay jugadas en la mesa para extender.")
+        else:
+            print("Jugadas en la mesa (numeradas):")
+            for num, info in jugadas_numeradas.items():
+                print(f"({num}) {info['jugador_nombre']} - {info['tipo']}: {[str(c) for c in info['subgrupo']]}")
         
         print(f"\nTus cartas: {[str(c) for c in mano_actual]}")
         
@@ -141,7 +182,6 @@ class Mesa:
         else:
             print("No hay carta en el descarte.")
         
-        # Reiniciar cartas usadas en extensiones para este turno
         Jugada.cartas_usadas_extension = []
         
         while True:
@@ -149,7 +189,8 @@ class Mesa:
             print("1. Robar carta del mazo cerrado")
             print("2. Tomar carta del descarte")
             print("3. Extender jugadas existentes")
-            print("4. Finalizar turno")
+            print("4. Reemplazar carta en jugada existente")  # ← NUEVA OPCIÓN
+            print("5. Finalizar turno")
             
             opcion = input("Elige una opción: ")
             
@@ -163,6 +204,7 @@ class Mesa:
                     break
                 else:
                     print("No hay cartas en el mazo cerrado.")
+            
             elif opcion == "2":
                 if cls.descarte:
                     carta_descarte = cls.descarte.pop(-1)
@@ -172,13 +214,31 @@ class Mesa:
                     break
                 else:
                     print("No hay carta en el descarte. Debes robar del mazo.")
+            
             elif opcion == "3":
-                extension_exitosa = Jugada.extender_jugadas(mano_actual, jugador, cls.cartas_mesa)
+                if not jugadas_numeradas:
+                    print("No hay jugadas para extender.")
+                    continue
+                
+                extension_exitosa = Jugada.extender_jugadas(mano_actual, jugador, cls.cartas_mesa, jugadores)
+                
                 if not extension_exitosa:
                     continue
-            elif opcion == "4":
+            
+            elif opcion == "4":  # ← NUEVA OPCIÓN DE REEMPLAZO
+                if not jugadas_numeradas:
+                    print("No hay jugadas para modificar.")
+                    continue
+                
+                reemplazo_exitosa = Jugada.reemplazar_carta_jugada(mano_actual, jugador, cls.cartas_mesa, jugadores)
+                
+                if not reemplazo_exitosa:
+                    continue
+            
+            elif opcion == "5":
                 print("Finalizando turno.")
                 break
+            
             else:
                 print("Opción inválida. Intenta de nuevo.")
         

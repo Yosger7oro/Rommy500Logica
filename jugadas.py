@@ -10,10 +10,22 @@ class Jugada:
 
     @classmethod
     def agregar_cartas_primera_jugada(cls, i, lista, cartas_mesa):
+        """
+        Agrega cartas a la mesa MANTENIENDO SEPARADAS las jugadas
+        """
+        # CORRECCIÓN: Cada jugada debe ser una lista separada
+        if not cartas_mesa[i]:
+            cartas_mesa[i] = []  # Inicializar como lista vacía si no existe
+        
+        # Crear una NUEVA lista para esta jugada específica
+        nueva_jugada = []
         for x in lista:
-            cartas_mesa[i].append(x)
+            nueva_jugada.append(x)
+        
+        # Agregar la nueva jugada a las cartas del jugador
+        cartas_mesa[i].append(nueva_jugada)
         lista.clear()
-
+        
     @classmethod
     def regresar_cartas(cls, lista, mano_actual):
         for x in lista:
@@ -84,58 +96,102 @@ class Jugada:
 
     @classmethod
     def dividir_en_grupos_validos(cls, jugada):
+        """
+        Divide una jugada en grupos válidos (tríos y seguidillas)
+        """
         grupos = []
         actual = []
-
+        
         for carta in jugada:
+            # Convertir a objeto Cartas si es string
             if isinstance(carta, str):
                 valor, _, palo = carta.partition(" de ")
-                carta = Cartas(valor.strip(), palo.strip())
-
+                carta_obj = Cartas(valor.strip(), palo.strip())
+            else:
+                carta_obj = carta
+                
             if not actual:
-                actual.append(carta)
+                actual.append(carta_obj)
                 continue
-
+                
             primera = actual[0]
-
-            if carta.numero == primera.numero or carta.numero == 'Joker' or primera.numero == 'Joker':
-                actual.append(carta)
-            elif (
-                carta.figura == primera.figura and
-                (
-                    carta.numero == 'Joker' or
-                    primera.numero == 'Joker' or
-                    abs(carta.valor_numerico() - actual[-1].valor_numerico()) == 1
-                )
-            ):
-                actual.append(carta)
+            
+            # Verificar si es un trío (mismo número)
+            if (str(carta_obj.numero) == str(primera.numero) or 
+                str(carta_obj.numero).lower() == 'joker' or 
+                str(primera.numero).lower() == 'joker'):
+                actual.append(carta_obj)
+            
+            # Verificar si es una seguidilla (mismo palo y valores consecutivos)
+            elif (carta_obj.figura == primera.figura and 
+                  (str(carta_obj.numero).lower() == 'joker' or 
+                   str(primera.numero).lower() == 'joker' or 
+                   abs(carta_obj.valor_numerico() - actual[-1].valor_numerico()) == 1)):
+                actual.append(carta_obj)
+            
             else:
                 grupos.append(actual)
-                actual = [carta]
-
+                actual = [carta_obj]
+                
         if actual:
             grupos.append(actual)
-
+            
         return grupos
 
     @classmethod
     def puede_extender_seguidilla(cls, carta, seguidilla):
-        if not all(c.figura == seguidilla[0].figura for c in seguidilla if c.numero != 'Joker'):
+        """
+        Verifica si una carta puede extender una seguidilla existente
+        """
+        seguidilla_cartas = []
+        
+        # Convertir todas las cartas a objetos Cartas
+        for c in seguidilla:
+            if isinstance(c, str):
+                valor, _, palo = c.partition(" de ")
+                seguidilla_cartas.append(Cartas(valor.strip(), palo.strip()))
+            else:
+                seguidilla_cartas.append(c)
+        
+        
+        cartas_no_joker = [c for c in seguidilla_cartas if str(c.numero).lower() != 'joker']
+        
+        if not cartas_no_joker:
             return False
-
-        valores = [c.valor_numerico() for c in seguidilla if c.numero != 'Joker']
+        
+        
+        if carta.figura != cartas_no_joker[0].figura:
+            return False
+        
+        # Verificar que todas sean del mismo palo
+        if not all(c.figura == cartas_no_joker[0].figura for c in cartas_no_joker):
+            return False
+        
+        # Obtener valores numéricos y ordenarlos
+        valores = [c.valor_numerico() for c in cartas_no_joker]
         valores.sort()
-
+        
+        # Verificar extensión al inicio
         if carta.valor_numerico() == valores[0] - 1:
             return "inicio"
+        
+        # Verificar extensión al final
         if carta.valor_numerico() == valores[-1] + 1:
             return "final"
-
+        
         return False
 
     @classmethod
     def puede_reemplazar_joker_trio(cls, carta, trio):
-        valores = [c.numero for c in trio]
+        trio_cartas = []
+        for c in trio:
+            if isinstance(c, str):
+                valor, _, palo = c.partition(" de ")
+                trio_cartas.append(Cartas(valor.strip(), palo.strip()))
+            else:
+                trio_cartas.append(c)
+        
+        valores = [c.numero for c in trio_cartas]
         if 'Joker' in valores:
             joker_index = valores.index('Joker')
             otros_valores = [val for i, val in enumerate(valores) if i != joker_index and val != 'Joker']
@@ -145,378 +201,667 @@ class Jugada:
 
     @classmethod
     def puede_reemplazar_joker_seguidilla(cls, carta, seguidilla):
+        """
+        Verifica si una carta puede reemplazar un joker en una seguidilla
+        """
+        seguidilla_cartas = []
+        
+        # Convertir todas las cartas a objetos Cartas
+        for c in seguidilla:
+            if isinstance(c, str):
+                valor, _, palo = c.partition(" de ")
+                seguidilla_cartas.append(Cartas(valor.strip(), palo.strip()))
+            else:
+                seguidilla_cartas.append(c)
+        
+        # Encontrar la posición del joker
         joker_pos = -1
-        for i, c in enumerate(seguidilla):
-            if c.numero == 'Joker':
+        for i, c in enumerate(seguidilla_cartas):
+            if str(c.numero).lower() == 'joker':
                 joker_pos = i
                 break
-
+        
         if joker_pos == -1:
             return False
-
-        palos = [c.figura for c in seguidilla if c.numero != 'Joker']
-        if len(set(palos)) != 1 or carta.figura != palos[0]:
+        
+       
+        cartas_no_joker = [c for c in seguidilla_cartas if str(c.numero).lower() != 'joker']
+        
+        if not cartas_no_joker:
             return False
-
-        seguidilla_reemplazada = seguidilla[:]
+        
+        if carta.figura != cartas_no_joker[0].figura:
+            return False
+        
+        # Crear una copia reemplazando el joker
+        seguidilla_reemplazada = seguidilla_cartas.copy()
         seguidilla_reemplazada[joker_pos] = carta
-
-        valores = [c.valor_numerico() for c in seguidilla_reemplazada]
+        
+        # Obtener valores numéricos de las cartas no joker
+        valores = []
+        for c in seguidilla_reemplazada:
+            if str(c.numero).lower() != 'joker':
+                valores.append(c.valor_numerico())
+        
+        if len(valores) < 2:
+            return False
+        
         valores.sort()
-
+        
+        # Verificar si la secuencia es válida
         for i in range(len(valores) - 1):
             if valores[i + 1] - valores[i] != 1:
                 return False
-
+        
         return joker_pos
-    @classmethod
-    def extender_jugadas(cls, mano_actual, jugador, cartas_mesa):
-        print("\n--- EXTENDER JUGADAS ---")
-        print("Cartas en la mesa:")
-        for i, jugada in enumerate(cartas_mesa):
-            if jugada:
-                print(f"Jugada {i+1}: {[str(c) for c in jugada]}")
 
-        print("\nTus cartas:")
+    @classmethod
+    def obtener_todas_jugadas_numeradas(cls, cartas_mesa, jugadores):
+        """Devuelve un diccionario con todas las jugadas numeradas"""
+        jugadas_numeradas = {}
+        contador = 1
+        
+        for i, jugadas_jugador in enumerate(cartas_mesa):
+            if i < len(jugadores) and jugadas_jugador:
+                jugador_obj = jugadores[i]
+                
+                # Iterar sobre CADA JUGADA del jugador
+                for jugada_index, jugada in enumerate(jugadas_jugador):
+                    if jugada:  # Solo si la jugada no está vacía
+                        subgrupos = cls.dividir_en_grupos_validos(jugada)
+                        
+                        for subgrupo in subgrupos:
+                            if len(subgrupo) >= 3:
+                                # Determinar tipo
+                                es_trio = all(
+                                    str(c.numero) == str(subgrupo[0].numero) 
+                                    for c in subgrupo 
+                                    if str(c.numero).lower() != 'joker'
+                                )
+                                
+                                es_seguidilla = all(
+                                    c.figura == subgrupo[0].figura 
+                                    for c in subgrupo 
+                                    if str(c.numero).lower() != 'joker'
+                                )
+                                
+                                if es_trio:
+                                    tipo = 'trio'
+                                elif es_seguidilla:
+                                    tipo = 'seguidilla'
+                                else:
+                                    continue  # Saltar si no es válida
+                                
+                                jugadas_numeradas[contador] = {
+                                    'jugador_idx': i,
+                                    'jugada_index': jugada_index,
+                                    'jugador_nombre': jugador_obj.nombre_jugador,
+                                    'jugador_numero': jugador_obj.nro_jugador,
+                                    'subgrupo': subgrupo,
+                                    'tipo': tipo,
+                                    'jugada_original': jugada  # Guardar referencia a la jugada original
+                                }
+                                contador += 1
+        
+        return jugadas_numeradas
+
+    @classmethod
+    def extender_jugadas(cls, mano_actual, jugador, cartas_mesa, jugadores):
+        """
+        Permite extender jugadas existentes en la mesa de forma simplificada
+        """
+        print("\n--- EXTENDER JUGADAS ---")
+        # Obtener todas las jugadas numeradas
+        jugadas_numeradas = cls.obtener_todas_jugadas_numeradas(cartas_mesa, jugadores)
+        
+        if not jugadas_numeradas:
+            print("No hay jugadas en la mesa para extender.")
+            return False
+        
+        # Mostrar jugadas numeradas
+        print("Jugadas en la mesa:")
+        for num, info in jugadas_numeradas.items():
+            print(f"({num}) {info['jugador_nombre']} - {info['tipo']}: {[str(c) for c in info['subgrupo']]}")
+        
+        # Mostrar cartas del jugador
+        print(f"\nTus cartas:")
         for i, carta in enumerate(mano_actual, 1):
             print(f"{i}. {carta}")
-
-        opciones = []
-
-        for carta_idx, carta in enumerate(mano_actual):
-            for mesa_idx, jugada in enumerate(cartas_mesa):
-                if not jugada:
-                    continue
-
-                subgrupos = cls.dividir_en_grupos_validos(jugada)
-
-                for subgrupo in subgrupos:
-                    jugada_objetos = []
-                    for c in subgrupo:
-                        if isinstance(c, str):
-                            valor, _, palo = c.partition(" de ")
-                            c = Cartas(valor.strip(), palo.strip())
-                        jugada_objetos.append(c)
-
-                    if len(jugada_objetos) >= 3 and all(c.numero == jugada_objetos[0].numero for c in jugada_objetos if c.numero != 'Joker'):
-                        if carta.numero == jugada_objetos[0].numero and carta not in cls.cartas_usadas_extension:
-                            opciones.append((carta_idx, mesa_idx, "trio", "extender", "final", jugada_objetos))
-
-                        joker_pos = cls.puede_reemplazar_joker_trio(carta, jugada_objetos)
-                        if joker_pos != -1 and carta not in cls.cartas_usadas_extension:
-                            opciones.append((carta_idx, mesa_idx, "trio", "reemplazar_joker", joker_pos, jugada_objetos))
-
-                    elif len(jugada_objetos) >= 4 and all(c.figura == jugada_objetos[0].figura for c in jugada_objetos if c.numero != 'Joker'):
-                        extension = cls.puede_extender_seguidilla(carta, jugada_objetos)
-                        if extension and carta not in cls.cartas_usadas_extension:
-                            opciones.append((carta_idx, mesa_idx, "seguidilla", "extender", extension, jugada_objetos))
-
-                        joker_pos = cls.puede_reemplazar_joker_seguidilla(carta, jugada_objetos)
-                        if joker_pos is not False and carta not in cls.cartas_usadas_extension:
-                            opciones.append((carta_idx, mesa_idx, "seguidilla", "reemplazar_joker", joker_pos, jugada_objetos))
-
-        if not opciones:
-            print("No tienes opciones para extender jugadas.")
+        
+        # Paso 1: Seleccionar jugada a extender
+        while True:
+            try:
+                seleccion_jugada = int(input("\nSelecciona el número de la jugada que deseas extender (0 para cancelar): "))
+                if seleccion_jugada == 0:
+                    return False
+                if seleccion_jugada in jugadas_numeradas:
+                    break
+                else:
+                    print("Número de jugada inválido. Intenta de nuevo.")
+            except ValueError:
+                print("Por favor ingresa un número válido.")
+        
+        jugada_info = jugadas_numeradas[seleccion_jugada]
+        jugada_seleccionada = jugada_info['subgrupo']
+        tipo_jugada = jugada_info['tipo']
+        mesa_idx = jugada_info['jugador_idx']
+        jugada_index = jugada_info['jugada_index']
+        jugada_original = jugada_info['jugada_original']
+        
+        print(f"\nHas seleccionado: {tipo_jugada} - {[str(c) for c in jugada_seleccionada]}")
+        
+        # Paso 2: Mostrar cartas válidas para esta jugada
+        cartas_validas = []
+        
+        for i, carta in enumerate(mano_actual):
+            if tipo_jugada == "trio":
+                # Para tríos: misma número
+                if str(carta.numero) == str(jugada_seleccionada[0].numero):
+                    cartas_validas.append((i, carta, "agregar"))
+                
+                # Reemplazar joker en trío
+                joker_pos = cls.puede_reemplazar_joker_trio(carta, jugada_seleccionada)
+                if joker_pos != -1:
+                    cartas_validas.append((i, carta, "reemplazar_joker", joker_pos))
+            
+            elif tipo_jugada == "seguidilla":
+                # Para seguidillas: extender
+                extension = cls.puede_extender_seguidilla(carta, jugada_seleccionada)
+                if extension:
+                    cartas_validas.append((i, carta, "extender", extension))
+                
+                # Reemplazar joker en seguidilla
+                joker_pos = cls.puede_reemplazar_joker_seguidilla(carta, jugada_seleccionada)
+                if joker_pos is not False:
+                    cartas_validas.append((i, carta, "reemplazar_joker", joker_pos))
+        
+        if not cartas_validas:
+            print("No tienes cartas válidas para extender esta jugada.")
             return False
-
-        print("\nOpciones de extensión:")
-        for i, opcion in enumerate(opciones, 1):
-            carta_idx, mesa_idx, tipo, accion, *extra, subgrupo = opcion
-            carta = mano_actual[carta_idx]
-            if accion == "extender":
+        
+        print("\nCartas válidas para esta jugada:")
+        for idx, (carta_idx, carta, accion, *extra) in enumerate(cartas_validas, 1):
+            if accion == "agregar":
+                print(f"{idx}. {carta} (agregar al trío)")
+            elif accion == "extender":
                 pos = extra[0]
-                print(f"{i}. Agregar {carta} al {pos} de la {tipo} {[str(c) for c in subgrupo]}")
-            else:
+                print(f"{idx}. {carta} (agregar al {pos} de la seguidilla)")
+            else:  # reemplazar_joker
                 joker_pos = extra[0]
-                print(f"{i}. Reemplazar joker en posición {joker_pos+1} de {tipo} {[str(c) for c in subgrupo]} con {carta}")
-
-        seleccion = input("\nSelecciona una opción (0 para cancelar): ")
-        if not seleccion.isdigit() or int(seleccion) == 0:
-            return False
-
-        seleccion_idx = int(seleccion) - 1
-        if seleccion_idx < 0 or seleccion_idx >= len(opciones):
-            print("Opción inválida.")
-            return False
-
-        carta_idx, mesa_idx, tipo, accion, *extra, subgrupo = opciones[seleccion_idx]
-        carta = mano_actual[carta_idx]
-
-        subgrupo_objetos = []
-        for c in subgrupo:
-            if isinstance(c, str):
-                valor, _, palo = c.partition(" de ")
-                c = Cartas(valor.strip(), palo.strip())
-            subgrupo_objetos.append(c)
-
-        if accion == "extender":
+                print(f"{idx}. {carta} (reemplazar joker en posición {joker_pos+1})")
+        
+        # Paso 3: Seleccionar carta a usar
+        while True:
+            try:
+                seleccion_carta = int(input("\nSelecciona el número de la carta a usar (0 para cancelar): "))
+                if seleccion_carta == 0:
+                    return False
+                if 1 <= seleccion_carta <= len(cartas_validas):
+                    break
+                else:
+                    print("Número de carta inválido. Intenta de nuevo.")
+            except ValueError:
+                print("Por favor ingresa un número válido.")
+        
+        carta_idx, carta, accion, *extra = cartas_validas[seleccion_carta - 1]
+        
+        # Paso 4: Realizar la acción
+        jugada_modificada = jugada_seleccionada.copy()
+        
+        if accion == "agregar":
+            jugada_modificada.append(carta)
+            mano_actual.remove(carta)
+            print(f"Has agregado {carta} al trío.")
+        
+        elif accion == "extender":
             pos = extra[0]
             if pos == "inicio":
-                subgrupo_objetos.insert(0, carta)
+                jugada_modificada.insert(0, carta)
             else:
-                subgrupo_objetos.append(carta)
+                jugada_modificada.append(carta)
             mano_actual.remove(carta)
-            cls.cartas_usadas_extension.append(carta)
-            print(f"Has agregado {carta} al {pos} de la {tipo}.")
-        else:
+            print(f"Has agregado {carta} al {pos} de la seguidilla.")
+        
+        else:  # reemplazar_joker
             joker_pos = extra[0]
-            joker = subgrupo_objetos[joker_pos]
-            subgrupo_objetos[joker_pos] = carta
+            joker = jugada_modificada[joker_pos]
+            jugada_modificada[joker_pos] = carta
             mano_actual.remove(carta)
             mano_actual.append(joker)
-            cls.cartas_usadas_extension.append(carta)
             print(f"Has reemplazado el joker con {carta}. El joker ha sido devuelto a tu mano.")
-
-        jugada_original = cartas_mesa[mesa_idx]
-        nueva_jugada = []
-
-        for grupo in cls.dividir_en_grupos_validos(jugada_original):
-            if [str(c) for c in grupo] == [str(c) for c in subgrupo]:
-                nueva_jugada.extend(subgrupo_objetos)
+        
+        # Paso 5: Actualizar la jugada en la mesa
+        nueva_jugada_completa = []
+        subgrupos_originales = cls.dividir_en_grupos_validos(jugada_original)
+        
+        for grupo in subgrupos_originales:
+            if [str(c) for c in grupo] == [str(c) for c in jugada_seleccionada]:
+                nueva_jugada_completa.extend(jugada_modificada)
             else:
-                nueva_jugada.extend(grupo)
-
-        cartas_mesa[mesa_idx] = nueva_jugada
+                nueva_jugada_completa.extend(grupo)
+        
+        cartas_mesa[mesa_idx][jugada_index] = nueva_jugada_completa
+        
+        print("¡Jugada actualizada exitosamente!")
+        return True
+    
+    @classmethod
+    def reemplazar_carta_jugada(cls, mano_actual, jugador, cartas_mesa, jugadores):
+        """
+        Permite reemplazar una carta existente en una jugada
+        """
+        print("\n--- REEMPLAZAR CARTA EN JUGADA ---")
+        
+        # Obtener todas las jugadas numeradas
+        jugadas_numeradas = cls.obtener_todas_jugadas_numeradas(cartas_mesa, jugadores)
+        
+        if not jugadas_numeradas:
+            print("No hay jugadas en la mesa para modificar.")
+            return False
+        
+        # Mostrar jugadas numeradas
+        print("Jugadas en la mesa:")
+        for num, info in jugadas_numeradas.items():
+            print(f"({num}) {info['jugador_nombre']} - {info['tipo']}: {[str(c) for c in info['subgrupo']]}")
+        
+        # Paso 1: Seleccionar jugada a modificar
+        while True:
+            try:
+                seleccion_jugada = int(input("\nSelecciona el número de la jugada donde quieres reemplazar una carta (0 para cancelar): "))
+                if seleccion_jugada == 0:
+                    return False
+                if seleccion_jugada in jugadas_numeradas:
+                    break
+                else:
+                    print("Número de jugada inválido. Intenta de nuevo.")
+            except ValueError:
+                print("Por favor ingresa un número válido.")
+        
+        jugada_info = jugadas_numeradas[seleccion_jugada]
+        jugada_seleccionada = jugada_info['subgrupo']
+        mesa_idx = jugada_info['jugador_idx']
+        jugada_index = jugada_info['jugada_index']
+        jugada_original = jugada_info['jugada_original']
+        
+        print(f"\nJugada seleccionada: {[str(c) for c in jugada_seleccionada]}")
+        
+        # Paso 2: Seleccionar carta a reemplazar
+        print("\nCartas en la jugada:")
+        for i, carta in enumerate(jugada_seleccionada, 1):
+            print(f"{i}. {carta}")
+        
+        while True:
+            try:
+                seleccion_carta_vieja = int(input("\nSelecciona el número de la carta a reemplazar (0 para cancelar): "))
+                if seleccion_carta_vieja == 0:
+                    return False
+                if 1 <= seleccion_carta_vieja <= len(jugada_seleccionada):
+                    break
+                else:
+                    print("Número de carta inválido. Intenta de nuevo.")
+            except ValueError:
+                print("Por favor ingresa un número válido.")
+        
+        carta_vieja = jugada_seleccionada[seleccion_carta_vieja - 1]
+        
+        # Paso 3: Seleccionar carta nueva de la mano
+        print(f"\nTus cartas:")
+        for i, carta in enumerate(mano_actual, 1):
+            print(f"{i}. {carta}")
+        
+        while True:
+            try:
+                seleccion_carta_nueva = int(input(f"\nSelecciona el número de la carta para reemplazar {carta_vieja} (0 para cancelar): "))
+                if seleccion_carta_nueva == 0:
+                    return False
+                if 1 <= seleccion_carta_nueva <= len(mano_actual):
+                    break
+                else:
+                    print("Número de carta inválido. Intenta de nuevo.")
+            except ValueError:
+                print("Por favor ingresa un número válido.")
+        
+        carta_nueva = mano_actual[seleccion_carta_nueva - 1]
+        
+        # Paso 4: Validar que el reemplazo mantenga la jugada válida
+        jugada_modificada = jugada_seleccionada.copy()
+        jugada_modificada[seleccion_carta_vieja - 1] = carta_nueva
+        
+        # Validar si la jugada modificada sigue siendo válida
+        if not cls.es_jugada_valida(jugada_modificada, jugada_info['tipo']):
+            print("El reemplazo haría que la jugada sea inválida.")
+            return False
+        
+        # Paso 5: Realizar el reemplazo
+        mano_actual.remove(carta_nueva)
+        mano_actual.append(carta_vieja)  # La carta vieja vuelve a la mano
+        
+        # Actualizar la jugada en la mesa
+        nueva_jugada_completa = []
+        subgrupos_originales = cls.dividir_en_grupos_validos(jugada_original)
+        
+        for grupo in subgrupos_originales:
+            if [str(c) for c in grupo] == [str(c) for c in jugada_seleccionada]:
+                nueva_jugada_completa.extend(jugada_modificada)
+            else:
+                nueva_jugada_completa.extend(grupo)
+        
+        cartas_mesa[mesa_idx][jugada_index] = nueva_jugada_completa
+        
+        print(f"¡Has reemplazado {carta_vieja} con {carta_nueva} exitosamente!")
         return True
 
-
-            
     @classmethod
-    def validar_jugada(cls,mano_actual,jugador,cartas_mesa,jugadores_primera_jugada,i):
-      cls.trio.clear()
-      if jugador not in jugadores_primera_jugada:
-        print("primero seleccione las cartas para su trio")
-        print("agregue las cartas que quiera, presione 1 para confirmar su trio, 2 para limpiar y 3 para salir")
-        num_saltos=0
-        carta = None
-        trio_valido= False
-        seguidilla_valida=False
-        while carta != "1":
-            mano_actual_a = [str(c) for c in mano_actual]                       
-            mano_actual_a = [m.lower() for m in mano_actual_a]
-            carta = input("seleccione su carta para el trio(recuerde presionar 1 para confirmar su trio): ").lower()
-            if carta in mano_actual_a:
-                cls.trio.append(carta)
-                mano_actual_a.remove(carta)
-                cls.eliminar_carta(carta,mano_actual)
-            elif carta == "1":
-                trioV = []
-                for x in cls.trio:
-                    valor, _, palo = x.partition(" de ")
-                    carta_obj = Cartas(valor, palo)
-                    trioV.append(carta_obj)
+    def es_jugada_valida(cls, jugada, tipo):
+        """
+        Verifica si una jugada sigue siendo válida después de un reemplazo
+        """
+        if tipo == "trio":
+            # Todos deben tener el mismo número (ignorando jokers)
+            numeros = [str(c.numero) for c in jugada if str(c.numero).lower() != 'joker']
+            return len(set(numeros)) == 1 if numeros else True
+        
+        elif tipo == "seguidilla":
+            # Mismo palo y valores consecutivos
+            cartas_no_joker = [c for c in jugada if str(c.numero).lower() != 'joker']
+            if not cartas_no_joker:
+                return True
+            
+            # Mismo palo
+            if not all(c.figura == cartas_no_joker[0].figura for c in cartas_no_joker):
+                return False
+            
+            # Valores consecutivos
+            valores = [c.valor_numerico() for c in cartas_no_joker]
+            valores.sort()
+            
+            for i in range(len(valores) - 1):
+                if valores[i + 1] - valores[i] != 1:
+                    return False
+            
+            return True
+        
+        return False
 
-
-                if len(trioV) < 3:
-                    print("Debes seleccionar al menos tres cartas para formar un trío.")
+    @classmethod
+    def validar_jugada(cls, mano_actual, jugador, cartas_mesa, jugadores_primera_jugada, i):
+        cls.trio.clear()
+        cls.seguidilla.clear()
+        
+        if jugador not in jugadores_primera_jugada:
+            print("primero seleccione las cartas para su trio")
+            print("agregue las cartas que quiera, presione 1 para confirmar su trio, 2 para limpiar y 3 para salir")
+            num_saltos = 0
+            carta = None
+            trio_valido = False
+            seguidilla_valida = False
+            
+            # FASE 1: SELECCIÓN DEL TRÍO
+            while carta != "1":
+                mano_actual_a = [str(c) for c in mano_actual]
+                mano_actual_a = [m.lower() for m in mano_actual_a]
+                carta = input("seleccione su carta para el trio(recuerde presionar 1 para confirmar su trio): ").lower()
+                
+                if carta in mano_actual_a:
+                    cls.trio.append(carta)
+                    mano_actual_a.remove(carta)
+                    cls.eliminar_carta(carta, mano_actual)
+                elif carta == "1":
+                    trioV = []
+                    for x in cls.trio:
+                        valor, _, palo = x.partition(" de ")
+                        carta_obj = Cartas(valor, palo)
+                        trioV.append(carta_obj)
+                    
+                    if len(trioV) < 3:
+                        print("Debes seleccionar al menos tres cartas para formar un trío.")
+                        cls.regresar_cartas(cls.trio, mano_actual)
+                        cls.trio.clear()
+                        continue
+                    
+                    numero_de_jokers = 0
+                    for x, p in enumerate(trioV):
+                        if p.numero == "joker" and numero_de_jokers < 1 and x != 0:
+                            trioV[x].numero = trioV[0].numero
+                            numero_de_jokers += 1
+                        elif p.numero == "joker" and numero_de_jokers < 1 and x == 0:
+                            trioV[x].numero = trioV[1].numero
+                            numero_de_jokers += 1
+                    
+                    valores = [c.valor_numerico() for c in trioV]
+                    if all(v == valores[0] for v in valores):
+                        trioV_str = [str(c) for c in trioV]
+                        print(f"Trío válido: {' - '.join(trioV_str)}")
+                        trio_valido = True
+                    else:
+                        print("trío inválido")
+                        cls.regresar_cartas(cls.trio, mano_actual)
+                        cls.trio.clear()
+                        continue
+                elif carta == "2":
                     cls.regresar_cartas(cls.trio, mano_actual)
                     cls.trio.clear()
                     continue
-
-                numero_de_jokers = 0
-                for x, p in enumerate(trioV):
-                    if p.numero == "joker" and numero_de_jokers < 1 and x != 0:
-                        trioV[x].numero = trioV[0].numero
-                        numero_de_jokers += 1
-                    elif p.numero == "joker" and numero_de_jokers < 1 and x == 0:
-                        trioV[x].numero = trioV[1].numero
-                        numero_de_jokers += 1
-
-                valores = [c.valor_numerico() for c in trioV]
-                if all(v == valores[0] for v in valores):
-                    trioV = [str(c) for c in trioV]
-                    print(f"Trío válido: {' - '.join(trioV)}")
-                    trio_valido = True
-                    break
-
+                elif carta == "3":
+                    cls.regresar_cartas(cls.trio, mano_actual)
+                    cls.trio.clear()
+                    return
                 else:
-                    print("trío inválido")
-                    cls.regresar_cartas(cls.trio, mano_actual)
-                    cls.trio.clear()
-                    continue
+                    print("la carta no esta :v")
 
-            elif carta=="2":
-                cls.regresar_cartas(cls.trio,mano_actual)
-                cls.trio.clear()  
-                continue
-            elif carta=="3":
-                cls.regresar_cartas(cls.trio,mano_actual)
-                cls.trio.clear()
-                carta=1   
-            else:
-                print("la carta no esta :v")
-        if carta != 1:
-            print("ahora seleccione las cartas para su seguidilla")
-            print("agregue las cartas que quiera, presione 1 para confirmar su seguidilla, 2 para limpiar y 3 para salir")
-        while carta != 1:
-            mano_actual_a = [str(c) for c in mano_actual]                       
-            mano_actual_a = [m.lower() for m in mano_actual_a]
-            carta= input("seleccione su carta para la seguidilla(recuerde presionar 1 para confirmar): ").lower()
-            if carta in [x.lower() for x in mano_actual_a]:
-                cls.seguidilla.append(carta)
-                mano_actual_a.remove(carta)
-                cls.eliminar_carta(carta,mano_actual)
-            elif carta == "1":
-                seguidillaV= []
-                for x in cls.seguidilla:
-                    valor, _, palo=x.partition(" de ")
-                    c = Cartas(valor, palo)
-                    seguidillaV.append(c)
-                valores = [c.valor_numerico() for c in seguidillaV]
-                valores= sorted(valores)
-                seguidilla_ordenada = sorted(seguidillaV,key=lambda c: c.valor_numerico())
-                numero_de_jokers=0
-                for x, p in enumerate(seguidilla_ordenada):
-                    if p.numero=="joker" and numero_de_jokers < 2:
-                        seguidilla_ordenada[x].figura = seguidilla_ordenada[2].figura
-                        numero_de_jokers += 1
-                if all(c.figura == seguidilla_ordenada[0].figura for c in seguidilla_ordenada) and len(seguidilla_ordenada) >= 4:
-                    seguidilla_ordenada = [str(c) for c in seguidilla_ordenada]
-                    if valores[0] != 0 and valores[1] != 0:
-                        num_saltos=cls.salto(0,valores)
-                        if num_saltos == 0:
-                            print(f"Seguidilla válida: {' - '.join(seguidillaV)}")
-                            seguidilla_valida=True
-                            break
-                        else: 
-                            print("seguidilla invalida, tus cartas tienen que seguir una escalera como (1,2,3,4) sin saltos como (1,2,4,5)")
-                            cls.regresar_cartas(cls.seguidilla,mano_actual)
-                            cls.seguidilla.clear()
-                            continue
-                    elif valores[0] == 0 and valores[1] != 0:
-                        salto_joker1 = cls.salto_joker(1,valores)
-                        if salto_joker1 == 1:      
-                            cls.jokers(seguidilla_ordenada,valores,1)
-                            num_saltos = cls.salto(1,valores)
-                            if num_saltos == 1:
-                                print("seguidilla valida")
-                                seguidilla_valida=True
-                                break
-                            else:
-                                print("seguidilla invaliada, hay mas de un salto que tu joker no puede cubrir")
-                                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                                cls.seguidilla.clear()
-                                continue
-                        elif salto_joker1 == 0:
-                            num_salto=cls.salto(1,valores)
-                            if num_salto != 0:
-                                print("seguidilla ivalida,  hay mas de un salto que tu joker no puede cubrir")
-                                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                                cls.seguidilla.clear()
-                                continue 
-                            elif num_salto==0 and valores[-1] != 13 and valores[1] != 1:
-                                cls.opciones_joker(seguidilla_ordenada,"deseas colocar tu joker al principio o final de tu seguidilla?")
-                                seguidilla_valida=True
-                                break
-                            elif num_salto == 0 and valores[-1] == 13 and valores[1] != 1:
-                                print("segudilla valida ")
-                                seguidilla_valida=True
-                                break
-                            elif num_salto == 0 and valores[-1] != 13 and valores[1] == 1:
-                                cls.mover_joker(seguidilla_ordenada)
-                                print("seguidilla valida")
-                                seguidilla_valida=True
-                                break
-                            elif num_salto == 0 and valores[-1] == 13 and valores[1] == 1:
-                                print("seguidilla invalida, tienes mas de 13 cartas")
-                                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                                cls.seguidilla.clear()
-                                continue          
-                        else:
-                            print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir") 
-                            cls.regresar_cartas(cls.seguidilla,mano_actual)
-                            cls.seguidilla.clear()
-                            continue 
-                    elif valores[0] == 0 and valores[1] == 0:
-                        salto_joker1 = cls.salto_joker(2,valores) 
-                        if salto_joker1 == 2:
-                            cls.jokers(seguidilla_ordenada,valores,2)
-                            num_salto = cls.salto(2,valores)
-                            if num_salto == 2:
-                                print("segudilla valida")
-                                seguidilla_valida=True
-                                break
-                            else:
-                                print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir")
-                                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                                cls.seguidilla.clear()
-                                continue 
-                        elif salto_joker1 == 1:
-                            cls.jokers(seguidilla_ordenada,valores,1)
-                            num_salto = cls.salto(2,valores) 
-                            if num_salto == 1 and valores[-1] != 13 and valores[2] != 1:
-                                cls.opciones_joker(seguidilla_ordenada,"deseas colocar tu joker restante al principio o final de tu seguidilla?")
-                                seguidilla_valida=True
-                                break
-                            elif num_salto == 1 and valores[-1] == 13 and valores[2] != 1:
-                                print("seguidilla valida")
-                                seguidilla_valida=True
-                                break
-                            elif num_salto == 1 and valores[-1] != 13 and valores[2] == 1:
-                                cls.mover_joker(seguidilla_ordenada)
-                                print("seguidilla valida")
-                                seguidilla_valida=True
-                                break
-                            elif num_salto == 1 and valores[-1] == 13 and valores[2] == 1:
-                                print("seguidilla invalida, tienes mas 13 cartas")
-                                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                                cls.seguidilla.clear()
-                                continue 
-                            else:
-                                print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir")
-                                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                                cls.seguidilla.clear()
-                                continue 
-                        elif salto_joker1 == 0:
-                            num_salto = cls.salto(2,valores) 
-                            if num_salto == 0 and valores[-1] != 13 and valores[2] != 1:
-                                cls.mover_joker(seguidilla_ordenada)
-                                print("segudilla valida")
-                                seguidilla_valida=True
-                                break
-
-                            else:
-                                print("segudilla invalida, no puedes tener dos joker seguidos")
-                                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                                cls.seguidilla.clear()
-                                continue 
+            # FASE 2: SELECCIÓN DE LA SEGUIDILLA (SOLO SI EL TRÍO ES VÁLIDO)
+            if trio_valido:
+                print("ahora seleccione las cartas para su seguidilla")
+                print("agregue las cartas que quiera, presione 1 para confirmar su seguidilla, 2 para limpiar y 3 para salir")
                 
-                        else:
-                            print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir")        
-                            cls.regresar_cartas(cls.seguidilla,mano_actual)
-                            cls.seguidilla.clear()
-                            continue     
-                
+                carta = None
+                while carta != "1":
+                    mano_actual_a = [str(c) for c in mano_actual]
+                    mano_actual_a = [m.lower() for m in mano_actual_a]
+                    carta = input("seleccione su carta para la seguidilla(recuerde presionar 1 para confirmar): ").lower()
+                    
+                    if carta in mano_actual_a:
+                        cls.seguidilla.append(carta)
+                        mano_actual_a.remove(carta)
+                        cls.eliminar_carta(carta, mano_actual)
+                    elif carta == "1":
+                        seguidillaV = []
+                        for x in cls.seguidilla:
+                            valor, _, palo = x.partition(" de ")
+                            c = Cartas(valor, palo)
+                            seguidillaV.append(c)
                         
-                else:
-                    print("seguidilla invalida, todas tus cartas tienen que ser del mismo palo y tienes que seleccionar mas de 4 cartas")
-                    cls.regresar_cartas(cls.seguidilla,mano_actual)
-                    cls.seguidilla.clear()
-                    continue
-            elif carta == "2":
-                cls.regresar_cartas(cls.seguidilla,mano_actual)
+                        if len(seguidillaV) < 4:
+                            print("Debes seleccionar al menos cuatro cartas para formar una seguidilla.")
+                            cls.regresar_cartas(cls.seguidilla, mano_actual)
+                            cls.seguidilla.clear()
+                            # También regresar el trío si la seguidilla falla
+                            cls.regresar_cartas(cls.trio, mano_actual)
+                            cls.trio.clear()
+                            return
+                        
+                        valores = [c.valor_numerico() for c in seguidillaV]
+                        valores = sorted(valores)
+                        seguidilla_ordenada = sorted(seguidillaV, key=lambda c: c.valor_numerico())
+                        
+                        numero_de_jokers = 0
+                        for x, p in enumerate(seguidilla_ordenada):
+                            if p.numero == "joker" and numero_de_jokers < 2:
+                                seguidilla_ordenada[x].figura = seguidilla_ordenada[2].figura
+                                numero_de_jokers += 1
+                        
+                        if all(c.figura == seguidilla_ordenada[0].figura for c in seguidilla_ordenada):
+                            seguidillaV_str = [str(c) for c in seguidillaV]
+                            
+                            if valores[0] != 0 and valores[1] != 0:
+                                num_saltos = cls.salto(0, valores)
+                                if num_saltos == 0:
+                                    print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                    seguidilla_valida = True
+                                else:
+                                    print("seguidilla invalida, tus cartas tienen que seguir una escalera como (1,2,3,4) sin saltos como (1,2,4,5)")
+                                    cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                    cls.seguidilla.clear()
+                                    cls.regresar_cartas(cls.trio, mano_actual)
+                                    cls.trio.clear()
+                                    return
+                            elif valores[0] == 0 and valores[1] != 0:
+                                salto_joker1 = cls.salto_joker(1, valores)
+                                if salto_joker1 == 1:
+                                    cls.jokers(seguidilla_ordenada, valores, 1)
+                                    num_saltos = cls.salto(1, valores)
+                                    if num_saltos == 1:
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    else:
+                                        print("seguidilla invaliada, hay mas de un salto que tu joker no puede cubrir")
+                                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                        cls.seguidilla.clear()
+                                        cls.regresar_cartas(cls.trio, mano_actual)
+                                        cls.trio.clear()
+                                        return
+                                elif salto_joker1 == 0:
+                                    num_salto = cls.salto(1, valores)
+                                    if num_salto != 0:
+                                        print("seguidilla ivalida, hay mas de un salto que tu joker no puede cubrir")
+                                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                        cls.seguidilla.clear()
+                                        cls.regresar_cartas(cls.trio, mano_actual)
+                                        cls.trio.clear()
+                                        return
+                                    elif num_salto == 0 and valores[-1] != 13 and valores[1] != 1:
+                                        seguidilla_ordenada_str = [str(c) for c in seguidilla_ordenada]
+                                        cls.opciones_joker(seguidilla_ordenada_str, "deseas colocar tu joker al principio o final de tu seguidilla?")
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    elif num_salto == 0 and valores[-1] == 13 and valores[1] != 1:
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    elif num_salto == 0 and valores[-1] != 13 and valores[1] == 1:
+                                        seguidilla_ordenada_str = [str(c) for c in seguidilla_ordenada]
+                                        cls.mover_joker(seguidilla_ordenada_str)
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    elif num_salto == 0 and valores[-1] == 13 and valores[1] == 1:
+                                        print("seguidilla invalida, tienes mas de 13 cartas")
+                                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                        cls.seguidilla.clear()
+                                        cls.regresar_cartas(cls.trio, mano_actual)
+                                        cls.trio.clear()
+                                        return
+                                else:
+                                    print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir")
+                                    cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                    cls.seguidilla.clear()
+                                    cls.regresar_cartas(cls.trio, mano_actual)
+                                    cls.trio.clear()
+                                    return
+                            elif valores[0] == 0 and valores[1] == 0:
+                                salto_joker1 = cls.salto_joker(2, valores)
+                                if salto_joker1 == 2:
+                                    cls.jokers(seguidilla_ordenada, valores, 2)
+                                    num_salto = cls.salto(2, valores)
+                                    if num_salto == 2:
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    else:
+                                        print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir")
+                                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                        cls.seguidilla.clear()
+                                        cls.regresar_cartas(cls.trio, mano_actual)
+                                        cls.trio.clear()
+                                        return
+                                elif salto_joker1 == 1:
+                                    cls.jokers(seguidilla_ordenada, valores, 1)
+                                    num_salto = cls.salto(2, valores)
+                                    if num_salto == 1 and valores[-1] != 13 and valores[2] != 1:
+                                        seguidilla_ordenada_str = [str(c) for c in seguidilla_ordenada]
+                                        cls.opciones_joker(seguidilla_ordenada_str, "deseas colocar tu joker restante al principio o final de tu seguidilla?")
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    elif num_salto == 1 and valores[-1] == 13 and valores[2] != 1:
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    elif num_salto == 1 and valores[-1] != 13 and valores[2] == 1:
+                                        seguidilla_ordenada_str = [str(c) for c in seguidilla_ordenada]
+                                        cls.mover_joker(seguidilla_ordenada_str)
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    elif num_salto == 1 and valores[-1] == 13 and valores[2] == 1:
+                                        print("seguidilla invalida, tienes mas 13 cartas")
+                                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                        cls.seguidilla.clear()
+                                        cls.regresar_cartas(cls.trio, mano_actual)
+                                        cls.trio.clear()
+                                        return
+                                    else:
+                                        print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir")
+                                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                        cls.seguidilla.clear()
+                                        cls.regresar_cartas(cls.trio, mano_actual)
+                                        cls.trio.clear()
+                                        return
+                                elif salto_joker1 == 0:
+                                    num_salto = cls.salto(2, valores)
+                                    if num_salto == 0 and valores[-1] != 13 and valores[2] != 1:
+                                        seguidilla_ordenada_str = [str(c) for c in seguidilla_ordenada]
+                                        cls.mover_joker(seguidilla_ordenada_str)
+                                        print(f"Seguidilla válida: {' - '.join(seguidillaV_str)}")
+                                        seguidilla_valida = True
+                                    else:
+                                        print("segudilla invalida, no puedes tener dos joker seguidos")
+                                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                        cls.seguidilla.clear()
+                                        cls.regresar_cartas(cls.trio, mano_actual)
+                                        cls.trio.clear()
+                                        return
+                                else:
+                                    print("seguidilla invalida, hay mas de un salto que tu joker no puede cubrir")
+                                    cls.regresar_cartas(cls.seguidilla, mano_actual)
+                                    cls.seguidilla.clear()
+                                    cls.regresar_cartas(cls.trio, mano_actual)
+                                    cls.trio.clear()
+                                    return
+                        else:
+                            print("seguidilla invalida, todas tus cartas tienen que ser del mismo palo")
+                            cls.regresar_cartas(cls.seguidilla, mano_actual)
+                            cls.seguidilla.clear()
+                            cls.regresar_cartas(cls.trio, mano_actual)
+                            cls.trio.clear()
+                            return
+                    elif carta == "2":
+                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                        cls.seguidilla.clear()
+                        continue
+                    elif carta == "3":
+                        cls.regresar_cartas(cls.trio, mano_actual)
+                        cls.trio.clear()
+                        cls.regresar_cartas(cls.seguidilla, mano_actual)
+                        cls.seguidilla.clear()
+                        return
+                    else:
+                        print("la carta no esta :v")
+
+            # FASE 3: CONFIRMACIÓN FINAL (SOLO SI AMBAS SON VÁLIDAS)
+            if trio_valido and seguidilla_valida:
+                cls.agregar_cartas_primera_jugada(i, trioV, cartas_mesa)
+                cls.agregar_cartas_primera_jugada(i, seguidilla_ordenada, cartas_mesa)
                 cls.seguidilla.clear()
-                continue
-            elif carta == "3":
-                cls.regresar_cartas(cls.trio,mano_actual)
                 cls.trio.clear()
-                cls.regresar_cartas(cls.seguidilla,mano_actual)
-                cls.seguidilla.clear()
-                carta = 1 
+                jugadores_primera_jugada.append(jugador)
+                print("¡Primera jugada válida completada!")
+                print(f"Trío: {[str(c) for c in trioV]}")
+                print(f"Seguidilla: {[str(c) for c in seguidilla_ordenada]}")
             else:
-                print("la carta no esta :v")
-        if trio_valido == True and seguidilla_valida == True:
-            cls.agregar_cartas_primera_jugada(i,trioV,cartas_mesa)
-            cls.agregar_cartas_primera_jugada(i,seguidilla_ordenada,cartas_mesa)
-            cls.seguidilla.clear()
-            cls.trio.clear()
-            jugadores_primera_jugada.append(jugador)
-            print("su jugada es valida")
-            print(f"las cartas que bajaste a la mesa son: {cartas_mesa[i]}")
-      else:
-          print("ya hiciste la primera jugada")
-
-
+                print("La primera jugada debe incluir un trío válido Y una seguidilla válida.")
+                if trio_valido:
+                    cls.regresar_cartas(cls.trio, mano_actual)
+                    cls.trio.clear()
+                if seguidilla_valida:
+                    cls.regresar_cartas(cls.seguidilla, mano_actual)
+                    cls.seguidilla.clear()
+        else:
+            print("ya hiciste la primera jugada")
 
 
     # conquiste este codigo :vvvvv
