@@ -20,19 +20,25 @@ class Mesa:
 
     @classmethod
     def cuantos_jugadores(cls):
-        num_jugadores = int(input('¿Cuántos jugadores van a jugar?: '))
-        if num_jugadores == 1:
-            print('Para jugar necesitas más de un jugador.')
-            return False
-        elif num_jugadores > 7:
-            print("Solo se puede jugar con un máximo de 7 jugadores.")
-            return False
-        else:
-            for x in range(num_jugadores):
-                nombre = input('Ingrese el nombre del jugador: ')
-                jugador = Jugador(x + 1, nombre)
-                cls.lista_jugadores.append(jugador)
-                print('Jugador añadido.')
+        while True:
+            entrada = input('¿Cuántos jugadores van a jugar?: ')
+            try:
+                num_jugadores = int(entrada)
+                if num_jugadores < 2:
+                    print('Para jugar necesitas más de un jugador.')
+                elif num_jugadores > 7:
+                    print("Solo se puede jugar con un máximo de 7 jugadores.")
+                else:
+                    for x in range(num_jugadores):
+                        nombre = input('Ingrese el nombre del jugador: ')
+                        jugador = Jugador(x + 1, nombre)
+                        cls.lista_jugadores.append(jugador)
+                        print('Jugador añadido.')
+                    return True
+            except ValueError:
+                print("Por favor ingrese un número válido.")
+
+
 
     @classmethod
     def mostrar_manos(cls, jugadores_reordenados, manos):
@@ -70,20 +76,22 @@ class Mesa:
             return
 
         carta_descarte = cls.descarte[-1]
-        carta_comprada = False
         print(f"\nSe ofrece la carta del descarte: {carta_descarte}")
+        carta_comprada = False
 
-        for j in range(len(jugadores)):
-            if j == jugador_actual:
-                continue
-            jugador_siguiente = jugadores[j]
+        cantidad_jugadores = len(jugadores)
+        intentos = 0
+        idx = (jugador_actual + 1) % cantidad_jugadores
+
+        while intentos < cantidad_jugadores - 1:
+            jugador_siguiente = jugadores[idx]
             respuesta = input(f'{jugador_siguiente.nombre_jugador}, ¿quieres comprar la carta del descarte ({carta_descarte})? (si/no): ')
 
             if cls.normalizar(respuesta) == 'si':
                 if mazo.cartas:
                     carta_extra = mazo.cartas.pop(-1)
-                    manos[j].append(carta_descarte)
-                    manos[j].append(carta_extra)
+                    manos[idx].append(carta_descarte)
+                    manos[idx].append(carta_extra)
                     cls.descarte.pop(-1)
                     print(f"{jugador_siguiente.nombre_jugador} ha comprado la carta del descarte y robado una carta extra.")
                     carta_comprada = True
@@ -91,10 +99,27 @@ class Mesa:
                     print("No hay cartas en el mazo para completar la compra.")
                 break
 
+            # Avanzar al siguiente jugador
+            idx = (idx + 1) % cantidad_jugadores
+            intentos += 1
+
         if not carta_comprada:
             carta_quemada = cls.descarte.pop(-1)
             cls.quema.append(carta_quemada)
             print(f"Nadie compró la carta. Se ha quemado: {carta_quemada}")
+
+    #nuevo metodo
+    @classmethod
+    def mostrar_cartas_mesa(cls):
+        print("\n--- Cartas en la mesa ---")
+        for i, jugadas_jugador in enumerate(cls.cartas_mesa):
+            if not jugadas_jugador:
+                print(f"Jugador {i + 1}: [Aún no ha bajado jugada]")
+            else:
+                print(f"Jugador {i + 1}:")
+                for jugada in jugadas_jugador:
+                    cartas_legibles = [str(carta) for carta in jugada]
+                    print(f"  - {' - '.join(cartas_legibles)}")
 
     @classmethod
     def descartar_carta(cls, jugador_actual, jugadores, manos):
@@ -190,7 +215,6 @@ class Mesa:
             print("2. Tomar carta del descarte")
             print("3. Extender jugadas existentes")
             print("4. Reemplazar carta en jugada existente")  # ← NUEVA OPCIÓN
-            print("5. Finalizar turno")
             
             opcion = input("Elige una opción: ")
             
@@ -221,6 +245,7 @@ class Mesa:
                     continue
                 
                 extension_exitosa = Jugada.extender_jugadas(mano_actual, jugador, cls.cartas_mesa, jugadores)
+                cls.mostrar_cartas_mesa()
                 
                 if not extension_exitosa:
                     continue
@@ -231,13 +256,12 @@ class Mesa:
                     continue
                 
                 reemplazo_exitosa = Jugada.reemplazar_carta_jugada(mano_actual, jugador, cls.cartas_mesa, jugadores)
+                cls.mostrar_cartas_mesa()
+                
                 
                 if not reemplazo_exitosa:
                     continue
             
-            elif opcion == "5":
-                print("Finalizando turno.")
-                break
             
             else:
                 print("Opción inválida. Intenta de nuevo.")
@@ -246,8 +270,9 @@ class Mesa:
 
     @classmethod
     def iniciar_partida(cls):
-        while cls.cuantos_jugadores() == False:
-            cls.cuantos_jugadores()
+        while not cls.cuantos_jugadores():
+            pass  
+
         
         cantidad_de_jugadores = len(cls.lista_jugadores)
         palos = ('Pica', 'Corazon', 'Diamante', 'Trebol')
@@ -299,7 +324,7 @@ class Mesa:
                     print(f"\nEs el turno de {jugador.nombre_jugador} (Jugador {jugador.nro_jugador})")
                     print("\nEs la primera ronda. Solo puedes intentar la primera jugada.")
                     print(f"Tus cartas: {[str(c) for c in mano_actual]}")
-                    print(f"Las cartas en la mesa: {[str(c) for c in cls.cartas_mesa]}")
+                    Mesa.mostrar_cartas_mesa()
                     
                     if cls.descarte:
                         print(f"Carta en el descarte: {cls.descarte[-1]}")
@@ -337,6 +362,7 @@ class Mesa:
                                 continue
                         elif opcion_robar == "3":
                             Jugada.validar_jugada(mano_actual, jugador, cls.cartas_mesa, cls.jugadores_primera_jugada, i)
+                            cls.mostrar_cartas_mesa()
                             if jugador not in cls.jugadores_primera_jugada:
                                 continue
                             else:
@@ -354,28 +380,3 @@ class Mesa:
                 break
 
 
-
-            #  hola
-            #  # Verificar si el jugador ya hizo su primera jugada
-            #     if not jugador.primera_jugada_hecha:
-            #         print("\nBuscando si tienes la primera jugada (1 trío y 1 seguidilla)...")
-            #         # Llamamos a la función de jugadas.py
-            #         jugada_bajada = Jugada.primera_jugada(mano_actual)
-
-            #         if jugada_bajada:
-            #             # La función devolvió una jugada, no False
-            #             print("Has bajado tu primera jugada a la mesa.")
-            #             jugador.primera_jugada_hecha = True # Marcamos que ya la hizo
-
-            #             # MUY IMPORTANTE: Quitar las cartas jugadas de la mano del jugador
-            #             cartas_a_quitar = []
-            #             for grupo in jugada_bajada: # jugada_bajada es una lista de listas, ej: [[trio], [seguidilla]]
-            #                 for carta in grupo:
-            #                     cartas_a_quitar.append(carta)
-                        
-            #             # Creamos una nueva lista para la mano sin las cartas jugadas
-            #             mano_actual_temp = [c for c in mano_actual if c not in cartas_a_quitar]
-            #             mano_actual = mano_actual_temp
-            #     else:
-            #         # Si ya hizo la primera jugada, aquí iría la lógica para bajar más cartas (futuro)
-            #         print("\nYa hiciste tu primera jugada. Ahora puedes bajar otras combinaciones.")                          
